@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  fs25-server:
+    image: ghcr.io/wine-gameservers/fs25-server:latest
+    container_name: fs25-server
+    restart: unless-stopped
+
+    ports:
+      - "S{GAME_PORT:-10823}:10823/udp"
+      - "${QUERY_PORT:-10824}:10824/udp"
+      - "${WEB_PORT:8080}:8080/tcp"
+    
+    volumes:
+      - ./data/config:/fs25/config
+      - ./data/savegames:/fs25/savegame
+      - ./data/logs:/fs25/logs
+    
+    environment:
+      SERVER_NAME: "${SERVER_NAME:-FS25 Saguenay_Farming&Cie}"
+      SERVER_PASSWORD: "${SERVER_PASSWORD:-XXX}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-$Golswing1985$}"
+      MAX_PLAYER: "${MAX_PLAYER:-12}"
+      LANGUAGE: "${LANGUAGE:-fr}"
+      CROSSPLAY: "${CROSSPLAY:-true}"
+      PUBLIC: "${PUBLIC:-true}"
+      REGION: "${REGION:-na}"
+      TZ: "${TZ:-America/Toronto}"
