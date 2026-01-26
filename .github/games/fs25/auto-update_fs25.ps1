@@ -3,8 +3,9 @@
     Autheur : Patrick
     Mise à jour automatique du serveur FS25
 #>
+$config = .\yaml.ps1
+$InstallDir = $config.gameservers.fs25.install_dir
 
-$InstallDir = "C:\FS25"
 $LogFile = "$InstallDir\auto-update.log"
 
 fonction Log {

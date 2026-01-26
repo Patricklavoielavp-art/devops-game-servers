@@ -3,8 +3,8 @@
     Author : Patrick
     Description : Met à jour le serveur FS25 via SteamCMD
 #>
-
-$InstallDir = "C:\FS25"
+$config = .\yaml.ps1
+$InstallDir = $config.gameservers.fs25.install_dir
 $SteamCmdExe = "$InstallDir\steamcmd\steamcmd.exe"
 $ServerDir = "$InstallDir\server"
 $AppID = 2345690

@@ -1,12 +1,15 @@
 [Unit]
-Decription=ARK ASA Dedicated Server
+Description=ARK: Survival Ascended Dedicated Server
 After=network.target
 
 [Service]
-User=ark
+Type=simple
+User=steam
 WorkingDirectory=/opt/ark
-ExecStart=/opt/ark/ShooterGame/Binaries/Linux/ShooterGameServer TheIsland?listen?SessionName=MyServer?RCONEnabled=True?RCONPort=27020?Port=7777?QueryPort=27015 -server -log
+ExecStart=/opt/ark/start_ark.sh
 Restart=on-failure
+RestartSec=10
+LimitNOFILE=100000
 
 [Install]
 WantedBy=multi-user.target

@@ -1,14 +1,12 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+# Chargement du COMMON
+source "$ROOT/../COMMON/common.sh"
+source "$ROOT/../COMMON/yaml.sh"
 
-EXPECTED_PORT="$PAL_PORT"
+PORT=8211
 
-PORT=$(ss -tulpn | grep PalServer | awk '{print $5}' | cut -d: -f2 || true)
-
-if [[ "$PORT" == "$EXPECTED_PORT" ]]; then
-  echo "OK"
-  exit 0
+if nc -z localhost $PORT; then
+    echo "healthy"
 else
-  echo "DOWN"
-  exit 1
+    echo "unhealthy"
 fi

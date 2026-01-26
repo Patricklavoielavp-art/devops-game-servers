@@ -3,8 +3,10 @@
     Autheur : Patrick
     Vérifie si FS25 tourne , sinon redémarre
 #>
+$config = .\yaml.ps1
+$InstallDir = $config.gameservers.fs25.install_dir
 
-$LogFile = "C:\FS25\monitor.log"
+$LogFile = "$Install_dir\monitor.log"
 $ServiceName = "FS25-Server"
 
 fonction Log {

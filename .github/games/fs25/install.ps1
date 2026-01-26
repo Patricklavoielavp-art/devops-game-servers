@@ -7,7 +7,9 @@
 # ===========================================================
 # CONFIGURATION
 # ===========================================================
-$InstallDir = "C:\FS25"
+$config = .\yaml.ps1
+$InstallDir = $config.gameservers.fs25.install_dir
+
 $SteamCmdDir = "$InstallDir/steamcmd"
 $ServerDir = "$InstallDir/server"
 $SteamCMDExe = "$SteamCmdDir/steamcmd.exe"

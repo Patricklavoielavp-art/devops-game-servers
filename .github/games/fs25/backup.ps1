@@ -3,8 +3,9 @@
     Author : Patrick
     Description : Sauvegarde compressée des savegames FS25
 #>
+$config = .\yaml.ps1
+$InstallDir = $config.gameservers.fs25.install_dir
 
-$InstallDir = "C:\FS25"
 $SaveDir = "$InstallDir\server\savegame"
 $BackupDir = "$InstallDir\backups"
 $Date = Get-Date -Format "yyyy-MM-dd_HH-mm"

@@ -3,11 +3,13 @@ Description=Palworld Dedicated Server
 After=network.target
 
 [Service]
-User=palworld
+Type=simple
+User=steam
 WorkingDirectory=/opt/palworld
-ExecStart=/bin/bash -c './PalServer.sh -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS'
+ExecStart=/opt/palworld/start_palworld.sh
 Restart=on-failure
 RestartSec=10
+LimitNOFILE=100000
 
 [Install]
 WantedBy=multi-user.target

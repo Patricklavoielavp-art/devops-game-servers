@@ -2,7 +2,10 @@
 set -euo pipefail
 
 ROOT="$(dirname "$(realpath "$0")")"
-source "$ROOT/.env"
+# Chargement du COMMON
+source "$ROOT/../COMMON/common.sh"
+source "$ROOT/../COMMON/yaml.sh"
+
 
 SAVE_DIR="$PAL_HOME/Pal/Saved"
 

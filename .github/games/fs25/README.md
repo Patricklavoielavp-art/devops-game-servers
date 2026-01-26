@@ -1,68 +1,111 @@
-## FS25 Dedicated Server – Windows Automation
-# 📌 Description
-Ce dossier contient l’ensemble des scripts PowerShell permettant d’installer, mettre à jour, sauvegarder, monitorer et exécuter un serveur Farming Simulator 25 sur Windows.
-L’objectif : fournir une solution automatisée, robuste et professionnelle.
+## 🚜 Farming Simulator 25 — Serveur Dédié (Windows)
+Framework d’automatisation pour installer, configurer, mettre à jour et gérer un serveur Farming Simulator 25 sous Windows.
+Conçu pour être simple, reproductible et adapté à une architecture multi‑serveurs.
 
-# 📁 Structure
-fs25/
-├── install.ps1
-├── update.ps1
-├── backup.ps1
-├── start_fs25.ps1
-├── stop_fs25.ps1
-├── restart_fs25.ps1
-├── auto-update_fs25.ps1
-├── monitor_fs25.ps1
-└── service/
-    └── fs25-service-setup.ps1
-
-
-
-# 🚀 Installation
-- Exécuter :
-.\install.ps1
+# 📂 Structure du dossier
+FS25/
+ ├── INSTALL/
+ │     └── install_fs25.ps1
+ ├── UPDATE/
+ │     └── update_fs25.ps1
+ ├── BACKUP/
+ │     └── backup_fs25.ps1
+ ├── MONITOR/
+ │     └── monitor_fs25.ps1
+ ├── SERVICE/
+ │     └── fs25_service.xml   (si utilisation de NSSM)
+ └── CONFIG/
+       └── fs25_config.json
 
 
-- Installer le service Windows :
-.\service\fs25-service-setup.ps1
+Les noms exacts peuvent être adaptés selon ton repo actuel — je peux les harmoniser si tu me montres ton arborescence.
 
 
-- Démarrer le serveur :
-.\start_fs25.ps1
+# ⚙️ Fonctionnalités principales
+✔️ Installation automatisée (PowerShell)
+- Téléchargement du serveur dédié FS25
+- Création des dossiers nécessaires
+- Configuration initiale
+- Enregistrement du service Windows (NSSM ou sc.exe)
+✔️ Mise à jour
+- Vérification de la version locale
+- Téléchargement des mises à jour
+- Redémarrage contrôlé du service
+✔️ Sauvegardes
+- Copie des fichiers critiques
+- Compression ZIP
+- Rotation configurable
+✔️ Monitoring
+- Vérification du statut du service
+- Logs
+- Redémarrage automatique optionnel
+
+# 🪟 Prérequis Windows
+- Windows 10 / 11 / Server 2019+
+- PowerShell 5.1 ou PowerShell 7
+- Droits administrateur
+- NSSM (recommandé) pour gérer le service
+https://nssm.cc/download
+
+# 🚀 Installation du serveur FS25
+Depuis PowerShell en administrateur :
+Set-ExecutionPolicy Bypass -Scope Process -Force
+.\INSTALL\install_fs25.ps1
+
+
+Le script :
+- crée les dossiers
+- télécharge le serveur
+- configure les fichiers
+- installe le service Windows
+
+# 🔧 Gestion du service Windows
+Démarrer le serveur
+Start-Service FS25
+
+
+Arrêter le serveur
+Stop-Service FS25
+
+
+Vérifier le statut
+Get-Service FS25
+
+
+Redémarrer
+Restart-Service FS25
 
 
 
-# 🔄 Mise à jour
-.\update.ps1
+# 📦 Sauvegardes
+Les sauvegardes sont générées dans :
+C:\FS25\backups\
 
 
-Ou automatiquement :
-.\auto-update_fs25.ps1
-
-
-
-# 💾 Sauvegardes
-.\backup.ps1
-
-
-Les backups sont compressés dans C:\FS25\backups.
-
-# 🩺 Monitoring
-Planifier :
-.\monitor_fs25.ps1
+Rotation configurable dans backup_fs25.ps1.
+Pour lancer une sauvegarde manuelle :
+.\BACKUP\backup_fs25.ps1
 
 
 
-# 🧰 Service Windows
-Le service s’appelle :
-FS25-Server
+# 🔍 Monitoring
+Pour vérifier l’état du serveur :
+.\MONITOR\monitor_fs25.ps1
 
 
-# Commandes utiles :
-Start-Service FS25-Server
-Stop-Service FS25-Server
-Restart-Service FS25-Server
+Fonctionnalités :
+- statut du service
+- disponibilité du port
+- logs
+- redémarrage automatique (optionnel)
 
+# 🛣️ Roadmap FS25 (Windows)
+- [ ] Ajout d’un dashboard local (HTML)
+- [ ] Intégration Prometheus Windows Exporter
+- [ ] Support Docker Windows (si utile)
+- [ ] CLI unifié multi‑jeux
 
+# 🤝 Contribution
+Projet personnel DevOps — ouvert aux suggestions et améliorations.
 
 

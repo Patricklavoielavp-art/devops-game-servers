@@ -1,9 +1,11 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+# Chargement du COMMON
+source "$ROOT/../COMMON/common.sh"
+source "$ROOT/../COMMON/yaml.sh"
 
-ROOT="$(dirname "$(realpath "$0")")"
-
-if ! "$ROOT/health-check.sh"; then
-  echo "[!] Palworld seems down. Restarting..."
-  systemctl restart palworld.service
+if ! systemctl is-active --quiet palworld; then
+    echo "[PALWORLD] Serveur down — redémarrage..."
+    sudo systemctl restart palworld
+else
+    echo "[PALWORLD] Serveur OK"
 fi

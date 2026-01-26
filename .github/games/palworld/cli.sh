@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Chargement du COMMON
+source "$ROOT/../COMMON/common.sh"
+source "$ROOT/../COMMON/yaml.sh"
+
 
 case "$1" in
   start) systemctl start palworld.service ;;

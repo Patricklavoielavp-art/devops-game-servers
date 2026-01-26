@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(dirname "$(realpath "$0")")"
+source "$(dirname "$0")/.../common/common.sh"
 source "$ROOT/.env"
 
 systemctl stop ark.service || true

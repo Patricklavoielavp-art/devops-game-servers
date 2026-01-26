@@ -1,18 +1,17 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
-ROOT="$(dirname "$(realpath "$0")")"
-source "$ROOT/.env"
+PAL_DIR="/opt/palworld"
+# Chargement du COMMON
+source "$ROOT/../COMMON/common.sh"
+source "$ROOT/../COMMON/yaml.sh"
 
-TS=$(date +'%Y%m%d-%H%M%S')
-FILE="$PAL_BACKUP_DIR/palworld-$TS.tar.gz"
+BACKUP_DIR="$PAL_DIR/backups"
 
-echo "[+] Creating backup: $FILE"
+mkdir -p "$BACKUP_DIR"
 
-systemctl stop palworld.service || true
+DATE=$(date +%Y-%m-%d_%H-%M)
+ZIP="$BACKUP_DIR/palworld_backup_$DATE.zip"
 
-tar -czf "$FILE" -C "$PAL_HOME" .
-
-systemctl start palworld.service || true
-
-echo "[+] Backup complete."
+echo "[PALWORLD] Sauvegarde..."
+zip -r "$ZIP" "$PAL_DIR/Pal/Saved"
+echo "[PALWORLD] Sauvegarde terminée : $ZIP"

@@ -1,19 +1,15 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e
 
-ROOT="$(dirname "$(realpath "$0")")"
-source "$ROOT/.env"
+PAL_DIR="/opt/palworld"
+# Chargement du COMMON
+source "$ROOT/../COMMON/common.sh"
+source "$ROOT/../COMMON/yaml.sh"
 
-echo "[+] Stopping Palworld service..."
-systemctl stop palworld.service || true
+APPID="2394010"
 
-echo "[+] Updating Palworld server..."
-sudo -u "$PAL_USER" "$STEAMCMD_BIN" +login anonymous \
-  +force_install_dir "$PAL_HOME" \
-  +app_update "$PAL_APP_ID" \
-  +quit
+echo "[PALWORLD] Mise à jour..."
+steamcmd +force_install_dir "$PAL_DIR" +login anonymous +app_update "$APPID" +quit
+echo "[PALWORLD] Mise à jour terminée."
 
-echo "[+] Restarting service..."
-systemctl start palworld.service
-
-echo "[+] Update complete."
+sudo systemctl restart palworld
