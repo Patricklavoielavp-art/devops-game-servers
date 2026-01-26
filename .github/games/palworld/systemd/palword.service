@@ -1,0 +1,13 @@
+[Unit]
+Description=Palworld Dedicated Server
+After=network.target
+
+[Service]
+User=palworld
+WorkingDirectory=/opt/palworld
+ExecStart=/bin/bash -c './PalServer.sh -useperfthreads -NoAsyncLoadingThread -UseMultithreadForDS'
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
