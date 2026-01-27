@@ -1,0 +1,65 @@
+gameservers:
+
+  ark:
+    enabled: true
+    os: linux
+    host: "192.168.18.13"
+    user: "steam"
+    appid: 2430930
+    install_dir: "/opt/ark"
+    service_name: "ark"
+    ports:
+      game: 7777
+      query: 27015
+      rcon: 27020
+    settings:
+      map: "TheIsland_WP"
+      session_name: "MyARKServer"
+      admin_password: "admin123"
+      server_password: ""
+    backup:
+      source: "/opt/ark/ShooterGame/Saved"
+      retention_days: 7
+    monitoring:
+      enabled: true
+      interval: 60
+      restart_on_fail: true
+      discord_webhook: "" #optionnel lien discord pour notifs
+
+  palworld:
+    enabled: true
+    os: linux
+    host: "192.168.1.10"
+    user: "steam"
+    appid: 2394010
+    install_dir: "/opt/palworld"
+    service_name: "palworld"
+    ports:
+      game: 8211
+      query: 27015
+    settings:
+      players: 32
+    backup:
+      source: "/opt/palworld/Pal/Saved"
+      retention_days: 1
+    monitoring:
+      enabled: true
+      interval: 60
+      restart_on_fail: true
+      discord_webhook: ""
+
+  fs25:
+    appid: 2430930
+    install_dir: "C:\\FS25"
+    user: "fs25"
+    service_name: "FS25"
+    ports:
+      game: 10823
+    backup:
+      source: "C:\\FS25\\savegame"
+      retention_days: 7
+    monitoring:
+      enabled: true
+      interval: 60
+      restart_on_fail: true
+      discord_webhook: ""
