@@ -39,6 +39,8 @@ if [[ ! -f "$STEAMCMD_BIN" ]]; then
     rm steamcmd.tar.gz
 fi
 
+chmod +x "$STEAMCMD_DIR/steamcmd.sh"
+
 log "Installation d'ARK Survival Ascended..."
 runuser -u "$ARK_USER" -- "$STEAMCMD_BIN" \
     +login anonymous \
