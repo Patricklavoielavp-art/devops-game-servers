@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 usage() {
     echo "Usage: $0 {install|update|backup|monitor|start|setup} {ark|palworld}"

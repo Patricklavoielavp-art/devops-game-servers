@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # Chargement du COMMON
 source "$ROOT/../common/common.sh"
 source "$ROOT/../common/yaml.sh"

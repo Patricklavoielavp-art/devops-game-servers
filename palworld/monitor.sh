@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail 
 
-ROOT="$(dirname "$(realpath "$0")")"
+ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 #Chargement de modules 
 source "$ROOT/../common/common.sh"
