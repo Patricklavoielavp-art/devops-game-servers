@@ -4,6 +4,8 @@
     Script de gestion des ps1 globale pour le serveur FS25
 #>
 Set-StrictMode -Version Latest
+Import-Module powershell-yaml
+
 $ErrorActionPreference = "Stop"
 
 if($args.Count -ne 2) {
