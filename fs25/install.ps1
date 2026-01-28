@@ -1,25 +1,49 @@
-# FS25/install.ps1
+<#
+    FS25 - SETUP COMPLET
+    Auteur : Patrick
+    Installation de FS25
+#>
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# Chargement du loader YAML
-$ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
-. "$ROOT\yaml.ps1"
-
 Write-Host "=== Installation FS25 ===" -ForegroundColor Cyan
 
-Import-Module powershell-yaml
+# -----------------------------
+# Paths
+# -----------------------------
+$SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
+$REPO_ROOT  = Split-Path -Parent $SCRIPT_DIR
+$ConfigPath = Join-Path $REPO_ROOT "config.yaml"
 
-$ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+if (-not (Test-Path $ConfigPath)) {
+    throw "config.yaml introuvable : $ConfigPath"
+}
+
+# -----------------------------
+# Module YAML
+# -----------------------------
+Import-Module powershell-yaml -ErrorAction Stop
+
+# -----------------------------
+# Lecture du YAML
+# -----------------------------
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 
-# Lecture du YAML
-$InstallDir = $Config.gameservers.fs25.install_dir
-$User = $Config.gameservers.fs25.user
-$AppID = $Config.gameservers.fs25.appid
-$BackupDir = $Config.gameservers.fs25.backup.source
+$Fs25 = $Config.gameservers.fs25
 
+$InstallDir  = $Fs25.install_dir  ?? (throw "install_dir manquant")
+$User        = $Fs25.user          ?? (throw "user manquant")
+$AppID       = $Fs25.appid         ?? (throw "appid manquant")
+$BackupDir   = $Fs25.backup.source ?? (throw "backup.source manquant")
+
+Write-Host "InstallDir : $InstallDir"
+Write-Host "User       : $User"
+Write-Host "AppID      : $AppID"
+Write-Host "BackupDir  : $BackupDir"
+
+# -----------------------------
 # Vérification SteamCMD
+# -----------------------------
 $SteamCmd = "C:\steamcmd\steamcmd.exe"
 if (-not (Test-Path $SteamCmd)) {
     Write-Host "Installation de SteamCMD..."
@@ -29,19 +53,37 @@ if (-not (Test-Path $SteamCmd)) {
     Remove-Item "C:\steamcmd\steamcmd.zip"
 }
 
+# -----------------------------
 # Création de l'utilisateur si nécessaire
+# -----------------------------
 if (-not (Get-LocalUser -Name $User -ErrorAction SilentlyContinue)) {
     Write-Host "Création de l'utilisateur $User..."
-    New-LocalUser -Name $User -NoPassword
+    try {
+        New-LocalUser -Name $User -NoPassword
+    } catch {
+        Write-Host "Impossible de créer l'utilisateur. Vérifie les droits Admin." -ForegroundColor Red
+    }
 }
 
+# -----------------------------
 # Création des dossiers
+# -----------------------------
 Write-Host "Création des dossiers..."
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 New-Item -ItemType Directory -Force -Path $BackupDir | Out-Null
 
+# -----------------------------
 # Installation FS25 via SteamCMD
+# -----------------------------
 Write-Host "Téléchargement du serveur FS25 via SteamCMD..."
-& $SteamCmd +login anonymous +force_install_dir "$InstallDir" +app_update $AppID validate +quit
+
+$steamArgs = @(
+    "+force_install_dir", "$InstallDir"
+    "+login", "anonymous"
+    "+app_update", "$AppID", "validate"
+    "+quit"
+)
+
+& $SteamCmd @steamArgs
 
 Write-Host "Installation FS25 terminée." -ForegroundColor Green

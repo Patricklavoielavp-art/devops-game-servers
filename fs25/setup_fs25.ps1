@@ -7,17 +7,12 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host ">>> FS25 SETUP START <<<" -ForegroundColor Cyan
-
 # --------------------------------------------------
 # Détermination des chemins
 # --------------------------------------------------
 
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $REPO_ROOT  = Split-Path -Parent $SCRIPT_DIR
-
-Write-Host "Script dir : $SCRIPT_DIR" -ForegroundColor DarkGray
-Write-Host "Repo root  : $REPO_ROOT"  -ForegroundColor DarkGray
 
 # --------------------------------------------------
 # Chargement YAML
@@ -32,8 +27,6 @@ if (-not (Test-Path $ConfigPath)) {
 }
 
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
-
-$Config | ConvertTo-Json -Depth 10 | Write-Host
 
 Write-Host "Configuration YAML chargée" -ForegroundColor Green
 
