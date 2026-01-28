@@ -17,6 +17,8 @@ Import-Module powershell-yaml
 $ConfigPath = Join-Path $ROOT "..\..\config.yaml"
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 
+echo "$Config"
+
 # Lecture du YAML
 $InstallDir  = $Config.gameservers.fs25.install_dir
 $ServiceName = $Config.gameservers.fs25.service_name
