@@ -25,7 +25,7 @@ if(-not (Test-Path $SteamCmd)) {
 
 # Mise à jour via SteamCMD 
 Write-Host "Mise à jour du serveur FS25 via SteamCMD ..."
-& $SteamCmd +login anonymous +force_install_dir "$InstallDir" +app_update "$AppID" validate +quit
+& $SteamCmd +force_install_dir "$InstallDir" +login anonymous +app_update "$AppID" validate +quit
 
 Write-Host "Mise à jour FS25 terminée." -ForegroundColor Green
 

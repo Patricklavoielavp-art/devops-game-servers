@@ -12,11 +12,16 @@ $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "=== Backup FS25 ===" -ForegroundColor Cyan
 
+Import-Module powershell-yaml
+
+$ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+
 # Lecture du YAML
-$InstallDir   = Get-YamlValue ".gameservers.fs25.install_dir"
-$BackupSource = Get-YamlValue ".gameservers.fs25.backup.source"
-$Retention    = Get-YamlValue ".gameservers.fs25.backup.retention_days"
-$Webhook      = Get-YamlValue ".gameservers.fs25.monitoring.discord_webhook"
+$InstallDir   = $Config.gameservers.fs25.install_dir
+$BackupSource = $Config.gameservers.fs25.backup.source
+$Retention    = $Config.gameservers.fs25.backup.retention_days
+$Webhook      = $Config.gameservers.fs25.monitoring.discord_webhook
 
 # Vérification du dossier source
 if (-not (Test-Path $BackupSource)) {

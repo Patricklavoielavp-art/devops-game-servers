@@ -12,9 +12,15 @@ $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "=== Démarrage du serveur FS25 ===" -ForegroundColor Cyan
 
+
+Import-Module powershell-yaml
+
+$ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+
 # Lecture du YAML
-$InstallDir = Get-YamlValue ".gameservers.fs25.install_dir"
-$GamePort   = Get-YamlValue ".gameservers.fs25.ports.game"
+$InstallDir = $Config.gameservers.fs25.install_dir
+$GamePort   = $Config.gameservers.fs25.ports.game
 
 # Vérification du dossier d'installation
 if (-not (Test-Path $InstallDir)) {

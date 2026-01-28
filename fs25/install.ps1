@@ -8,11 +8,16 @@ $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "=== Installation FS25 ===" -ForegroundColor Cyan
 
+Import-Module powershell-yaml
+
+$ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+
 # Lecture du YAML
-$InstallDir = Get-YamlValue ".gameservers.fs25.install_dir"
-$User = Get-YamlValue ".gameservers.fs25.user"
-$AppID = Get-YamlValue ".gameservers.fs25.appid"
-$BackupDir = Get-YamlValue ".gameservers.fs25.backup.source"
+$InstallDir = $Config.gameservers.fs25.install_dir
+$User = $Config.gameservers.fs25.user
+$AppID = $Config.gameservers.fs25.appid
+$BackupDir = $Config.gameservers.fs25.backup.source
 
 # Vérification SteamCMD
 $SteamCmd = "C:\steamcmd\steamcmd.exe"

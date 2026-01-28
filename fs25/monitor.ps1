@@ -12,12 +12,18 @@ $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "=== Monitoring FS25 ===" -ForegroundColor Cyan
 
+
+Import-Module powershell-yaml
+
+$ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+
 # Lecture du YAML
-$ServiceName = Get-YamlValue ".gameservers.fs25.service_name"
-$GamePort    = Get-YamlValue ".gameservers.fs25.ports.game"
-$Enabled     = Get-YamlValue ".gameservers.fs25.monitoring.enabled"
-$RestartOnFail = Get-YamlValue ".gameservers.fs25.monitoring.restart_on_fail"
-$Webhook     = Get-YamlValue ".gameservers.fs25.monitoring.discord_webhook"
+$ServiceName = $Config.gameservers.fs25.service_name
+$GamePort    = $Config.gameservers.fs25.ports.game
+$Enabled     = $Config.gameservers.fs25.monitoring.enabled
+$RestartOnFail = $Config.gameservers.fs25.monitoring.restart_on_fail
+$Webhook     = $Config.gameservers.fs25.monitoring.discord_webhook
 
 if ($Enabled -ne "true") {
     Write-Host "Monitoring FS25 désactivé dans config.yaml" -ForegroundColor Yellow

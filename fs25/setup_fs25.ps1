@@ -12,10 +12,15 @@ $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Write-Host "=== Initialisation du serveur FS25 ===" -ForegroundColor Cyan
 
+Import-Module powershell-yaml
+
+$ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+
 # Lecture du YAML
-$InstallDir  = Get-YamlValue ".gameservers.fs25.install_dir"
-$ServiceName = Get-YamlValue ".gameservers.fs25.service_name"
-$GamePort    = Get-YamlValue ".gameservers.fs25.ports.game"
+$InstallDir  = $Config.gameservers.fs25.install_dir
+$ServiceName = $Config.gameservers.fs25.service_name
+$GamePort    = $Config.gameservers.fs25.ports.game"
 
 # 1. Installation
 Write-Host "Étape 1/4 : Installation du serveur FS25..."
@@ -40,7 +45,7 @@ if (-not (Test-Path $nssm)) {
 
 $StartScript = Join-Path $ROOT "start_fs25.ps1"
 
-& $nssm install $ServiceName "powershell.exe" " -ExecutionPolicy Bypass -File `"$StartScript`""
+& $nssm install $ServiceName "pwsh.exe" " -ExecutionPolicy Bypass -File `"$StartScript`""
 & $nssm set $ServiceName AppDirectory $InstallDir
 & $nssm set $ServiceName Start SERVICE_AUTO_START
 
