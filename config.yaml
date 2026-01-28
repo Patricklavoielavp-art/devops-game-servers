@@ -52,7 +52,7 @@ gameservers:
     appid: 2430930
     install_dir: "C:\\FS25"
     user: "fs25"
-    service_name: "FS25"
+    service_name: "FS25-Server"
     ports:
       game: 10823
     backup:
