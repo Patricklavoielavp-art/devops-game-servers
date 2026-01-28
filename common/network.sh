@@ -1,5 +1,5 @@
 #!/bin/bash
-source "$(dirname "$0")"/logging.sh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )"/logging.sh"
 
 check_port() {
     local port=$1

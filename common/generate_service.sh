@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Chargement des modules
-source "$(dirname "$0")/yaml.sh"
-source "$(dirname "$0")/logging.sh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )/yaml.sh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )/logging.sh"
 
 GAME=$1
 

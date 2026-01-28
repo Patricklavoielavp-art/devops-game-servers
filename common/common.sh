@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASE_DIR="$(dirname "$0")"
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 source "$BASE_DIR/colors.sh"
 source "$BASE_DIR/logging.sh"
