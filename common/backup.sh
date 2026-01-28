@@ -1,5 +1,5 @@
 #!/bin/bash
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )")/loggig.dh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/logging.sh"
 
 create_backup() {
     local source_dir=$1

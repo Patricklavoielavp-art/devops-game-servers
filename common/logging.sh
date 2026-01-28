@@ -1,5 +1,5 @@
 #!/bin/bash
-source "$( cd "$( dirname "${BASH_SOURCE[0]}")")/colors.sh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/colors.sh"
 
 log() {
     echo -e "${BLUE}[INFO]{RESET} $1"

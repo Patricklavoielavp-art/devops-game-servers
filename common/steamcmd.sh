@@ -1,5 +1,5 @@
 #!/bin/bash
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )")/logging.sh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/logging.sh"
 
 steam_update() {
     local install_dir=$1

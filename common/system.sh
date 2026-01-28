@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )")/logging.sh"
+source "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/logging.sh"
 
 servie_start() {
     sudo systemctl start "$1"
