@@ -19,11 +19,11 @@ $GamePort    = Get-YamlValue ".gameservers.fs25.ports.game"
 
 # 1. Installation
 Write-Host "Étape 1/4 : Installation du serveur FS25..."
-powershell.exe -ExecutionPolicy Bypass -File "$ROOT\install.ps1"
+pwsh.exe -ExecutionPolicy Bypass -File "$ROOT\install.ps1"
 
 # 2. Mise à jour
 Write-Host "Étape 2/4 : Mise à jour du serveur FS25..."
-powershell.exe -ExecutionPolicy Bypass -File "$ROOT\update.ps1"
+pwsh.exe -ExecutionPolicy Bypass -File "$ROOT\update.ps1"
 
 # 3. Création du service Windows (via NSSM)
 Write-Host "Étape 3/4 : Création du service Windows..."
