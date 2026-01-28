@@ -14,7 +14,7 @@ Write-Host ">>> FS25 SETUP START <<<" -ForegroundColor Cyan
 # --------------------------------------------------
 
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
-$REPO_ROOT  = Resolve-Path (Join-Path $SCRIPT_DIR "..")
+$REPO_ROOT  = Split-Path -Parent $SCRIPT_DIR
 
 Write-Host "Script dir : $SCRIPT_DIR" -ForegroundColor DarkGray
 Write-Host "Repo root  : $REPO_ROOT"  -ForegroundColor DarkGray
