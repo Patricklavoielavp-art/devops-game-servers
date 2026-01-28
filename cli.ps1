@@ -18,6 +18,8 @@ $Game   = $args[1]
 
 $ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
 
+echo "$ROOT"
+
 switch($Game) {
     "fs25" { $Dir = "$ROOT/fs25"}
     default {
