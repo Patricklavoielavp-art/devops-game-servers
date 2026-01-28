@@ -32,7 +32,8 @@ if (-not (Test-Path $ConfigPath)) {
 }
 
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
-Write-Host "YAML  :  $Config"   
+
+$Config | ConvertTo-Json -Depth 10 | Write-Host
 
 Write-Host "Configuration YAML chargée" -ForegroundColor Green
 
