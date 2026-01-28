@@ -43,8 +43,8 @@ chmod +x "$STEAMCMD_DIR/steamcmd.sh"
 
 log "Installation d'ARK Survival Ascended..."
 runuser -u "$ARK_USER" -- "$STEAMCMD_BIN" \
-    +login anonymous \
     +force_install_dir "$ARK_HOME" \
+    +login anonymous \
     +app_update "$ARK_APP_ID" validate \
     +quit
 

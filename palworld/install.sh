@@ -46,8 +46,9 @@ fi
 
 # Installation Palworld via SteamCMD
 log "Installation de Palworld via SteamCMD..."
-sudo -u "$PAL_USER" "$STEAMCMD_BIN" +login anomymous \
+sudo -u "$PAL_USER" "$STEAMCMD_BIN"    \
     +force_install_dir "PAL_HOME" \
+    +login anomymous \
     +app_update "$PAL_APP_ID" validate \
     +quit
 
