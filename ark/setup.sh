@@ -11,7 +11,7 @@ source "$ROOT/../common/system.sh"
 log "=== Initialition du serveur ARK ASA ==="
 
 # Lecture du YAML
-SERVICE_NAME=$(yaml_get '.gamservers.ark.service_name')
+SERVICE_NAME=$(yaml_get '.gameservers.ark.service_name')
 INSTALL_DIR=$(yaml_get '.gameservers.ark.install_dir')
 GAME_PORT=$(yaml_get '.gameservers.ark.ports.game')
 
