@@ -1,7 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# Chargement des modules
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )")/yaml.sh"
 source "$( cd "$( dirname "${BASH_SOURCE[0]}" )")/logging.sh"
 
@@ -10,7 +9,12 @@ GAME=$1
 SERVICE_NAME=$(yaml_get ".gameservers.$GAME.service_name")
 INSTALL_DIR=$(yaml_get ".gameservers.$GAME.install_dir")
 
-SERVICE_FILE="etc/systemd/system/${SERVICE_NAME}.service"
+if [[ -z "$SERVICE_NAME" || -z "$INSTALL_DIR" ]]; then
+  error "SERVICE_NAME ou INSTALL_DIR vide (YAML invalide)"
+  exit 1
+fi
+
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 log "Génération du service systemd pour $GAME..."
 
