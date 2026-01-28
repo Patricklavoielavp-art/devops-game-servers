@@ -1,5 +1,5 @@
 param(
-    [string]$Path = "..\config.yaml"
+    [string]$Path = "C:\devops-game-servers\config.yaml"
 )
 
 function Load-Yaml {
