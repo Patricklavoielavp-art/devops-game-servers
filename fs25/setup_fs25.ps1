@@ -14,7 +14,13 @@ Write-Host "=== Initialisation du serveur FS25 ===" -ForegroundColor Cyan
 
 Import-Module powershell-yaml
 
+
+
+
 $ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+
+echo "$ConfigPath" 
+
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 
 echo "$Config"
