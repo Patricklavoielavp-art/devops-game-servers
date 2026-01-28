@@ -6,8 +6,8 @@ gameservers:
     host: "192.168.18.13"
     user: "steam"
     appid: 2430930
-    install_dir: /opt/ark
-    service_name: "ark"
+    install_dir: "/opt/ark"
+    service_name: "ark-server"
     ports:
       game: 7777
       query: 27015
@@ -32,7 +32,7 @@ gameservers:
     host: "192.168.1.10"
     user: "steam"
     appid: 2394010
-    install_dir: /opt/palworld
+    install_dir: "/opt/palworld"
     service_name: "palworld"
     ports:
       game: 8211
@@ -40,7 +40,7 @@ gameservers:
     settings:
       players: 32
     backup:
-      source: /opt/palworld/Pal/Saved
+      source: "/opt/palworld/Pal/Saved"
       retention_days: 1
     monitoring:
       enabled: true
@@ -50,13 +50,13 @@ gameservers:
 
   fs25:
     appid: 2430930
-    install_dir: C:\\FS25
+    install_dir: "C:\\FS25"
     user: "fs25"
     service_name: "FS25"
     ports:
       game: 10823
     backup:
-      source: C:\\FS25\\savegame
+      source: "C:\\FS25\\savegame"
       retention_days: 7
     monitoring:
       enabled: true
