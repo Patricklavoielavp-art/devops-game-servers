@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )")/yaml.sh"
-source "$( cd "$( dirname "${BASH_SOURCE[0]}" )")/logging.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
+source "$SCRIPT_DIR/yaml.sh"
+source "$SCRIPT_DIR/logging.sh"
+
+
 
 GAME=$1
 
