@@ -66,37 +66,41 @@ pwsh -ExecutionPolicy Bypass -File (Join-Path $SCRIPT_DIR "install.ps1")
 Write-Host "Étape 2/4 : Mise à jour FS25..."
 pwsh -ExecutionPolicy Bypass -File (Join-Path $SCRIPT_DIR "update.ps1")
 
-# --------------------------------------------------
-# Étape 3 - Service Windows (NSSM)
-# --------------------------------------------------
-
+# -----------------------------
+# Étape 3 - Création du service Windows (via NSSM)
+# -----------------------------
 Write-Host "Étape 3/4 : Création du service Windows..."
 
 $nssm = "C:\nssm\nssm.exe"
-
 if (-not (Test-Path $nssm)) {
     Write-Host "Installation de NSSM..."
     New-Item -ItemType Directory -Force -Path "C:\nssm" | Out-Null
-    Invoke-WebRequest "https://nssm.cc/release/nssm-2.24.zip" -OutFile "C:\nssm\nssm.zip"
-    Expand-Archive "C:\nssm\nssm.zip" "C:\nssm" -Force
+    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "C:\nssm\nssm.zip"
+    Expand-Archive -Path "C:\nssm\nssm.zip" -DestinationPath "C:\nssm" -Force
     Remove-Item "C:\nssm\nssm.zip"
     $nssm = "C:\nssm\nssm-2.24\win64\nssm.exe"
 }
 
 $StartScript = Join-Path $SCRIPT_DIR "start_fs25.ps1"
 
-& $nssm install $ServiceName "pwsh.exe" "-ExecutionPolicy Bypass -File `"$StartScript`""
-& $nssm set $ServiceName AppDirectory $InstallDir
-& $nssm set $ServiceName Start SERVICE_AUTO_START
+# Création du service seulement s'il n'existe pas
+if (-not (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) {
+    & $nssm install $ServiceName "pwsh.exe" "-ExecutionPolicy Bypass -File `"$StartScript`""
+    & $nssm set $ServiceName AppDirectory $InstallDir
+    & $nssm set $ServiceName Start SERVICE_AUTO_START
 
-Write-Host "Service Windows créé : $ServiceName" -ForegroundColor Green
+    Write-Host "Service Windows créé : $ServiceName" -ForegroundColor Green
+} else {
+    Write-Host "Service $ServiceName existe déjà." -ForegroundColor Yellow
+}
 
-# --------------------------------------------------
-# Étape 4 - Démarrage
-# --------------------------------------------------
+# -----------------------------
+# Étape 4 - Démarrage / Restart
+# -----------------------------
+Write-Host "Étape 4/4 : Démarrage du service Windows..."
+Restart-Service -Name $ServiceName -Force
 
-Write-Host "Étape 4/4 : Démarrage du service FS25..."
-Start-Service $ServiceName
+Write-Host "Service $ServiceName démarré et prêt." -ForegroundColor Green
 
 # --------------------------------------------------
 # Vérification du port
