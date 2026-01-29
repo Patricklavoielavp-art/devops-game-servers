@@ -75,7 +75,7 @@ Write-Host "Dossiers crees."
 if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
     Write-Host "FS25 non installe, lancement installation via SteamCMD..."
 
-    # --- Construire script SteamCMD pour +runscript ---
+    # Construire script pour +runscript
     $loginCmd = "$SteamUser $SteamPass"
     if ($SteamGuard -ne "") { $loginCmd += " $SteamGuard" }
 
@@ -89,10 +89,19 @@ quit
     $TempFile = "$env:TEMP\fs25_steamcmd.txt"
     $steamScript | Set-Content $TempFile -Force
 
-    Start-Process -FilePath $SteamCmdPath -ArgumentList "+runscript `"$TempFile`"" -Wait
+    # Lancer SteamCMD et capturer la sortie
+    $proc = Start-Process -FilePath $SteamCmdPath -ArgumentList "+runscript `"$TempFile`"" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\fs25_steamcmd_out.txt" -RedirectStandardError "$env:TEMP\fs25_steamcmd_err.txt"
+
     Remove-Item $TempFile
 
-    Write-Host "FS25 installe."
+    # Vérifier si l'installation a réellement créé ShooterGame
+    if (Test-Path (Join-Path $InstallDir "ShooterGame")) {
+        Write-Host "FS25 installe avec succes."
+    } else {
+        Write-Host "Erreur: FS25 n'a pas pu etre installe. Verifiez que votre compte Steam a acces au jeu." -ForegroundColor Red
+        Write-Host "Voir les logs SteamCMD dans $env:TEMP\fs25_steamcmd_out.txt et $env:TEMP\fs25_steamcmd_err.txt"
+        exit 1
+    }
 } else {
     Write-Host "FS25 deja installe, installation ignoree."
 }
