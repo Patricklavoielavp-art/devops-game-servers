@@ -7,97 +7,157 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== FS25 SETUP (IDEMPOTENT) ===" -ForegroundColor Cyan
+# =======================
+# Sécurité TLS (Windows Server fresh)
+# =======================
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# --------------------------------------------------
-# Paths & YAML
-# --------------------------------------------------
-$SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
-$REPO_ROOT  = Split-Path -Parent $SCRIPT_DIR
-$ConfigPath = Join-Path $REPO_ROOT "config.yaml"
+# =======================
+# Paths
+# =======================
+$ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
+$REPO_ROOT = Resolve-Path "$ROOT\.."
+$CONFIG_PATH = Join-Path $REPO_ROOT "config.yaml"
+$CACHE = "C:\_cache"
+New-Item -ItemType Directory -Force -Path $CACHE | Out-Null
 
-Import-Module powershell-yaml -ErrorAction Stop
+Write-Host "=== Initialisation FS25 ===" -ForegroundColor Cyan
+Write-Host "Repo root : $REPO_ROOT"
+Write-Host "Config     : $CONFIG_PATH"
 
-if (-not (Test-Path $ConfigPath)) {
-    throw "config.yaml introuvable : $ConfigPath"
+if (-not (Test-Path $CONFIG_PATH)) {
+    throw "config.yaml introuvable : $CONFIG_PATH"
 }
 
-$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
-$Fs25   = $Config.gameservers.fs25
+# =======================
+# Téléchargement robuste
+# =======================
+function Get-FileRobust {
+    param(
+        [string[]]$Urls,
+        [string]$OutFile
+    )
 
-$InstallDir  = $Fs25.install_dir
-$ServiceName = $Fs25.service_name
-$GamePort    = $Fs25.ports.game
+    if (Test-Path $OutFile) {
+        Write-Host "Déjà présent : $OutFile"
+        return
+    }
 
-# --------------------------------------------------
-# Etape 1 - Installation (si absente)
-# --------------------------------------------------
-if (-not (Test-Path $InstallDir)) {
-    Write-Host "Etape 1/4 : Installation FS25..."
-    pwsh -ExecutionPolicy Bypass -File (Join-Path $SCRIPT_DIR "install.ps1")
-} else {
-    Write-Host "Etape 1/4 : FS25 deja installE → SKIP" -ForegroundColor Yellow
+    foreach ($url in $Urls) {
+        try {
+            Write-Host "Téléchargement : $url"
+            Invoke-WebRequest -Uri $url -OutFile $OutFile -UseBasicParsing -TimeoutSec 30
+            return
+        } catch {
+            Write-Warning "Échec : $url"
+        }
+    }
+
+    throw "Impossible de télécharger $OutFile"
 }
 
-# --------------------------------------------------
-# Etape 2 - Mise à jour (si installE)
-# --------------------------------------------------
-if (Test-Path $InstallDir) {
-    Write-Host "Etape 2/4 : Mise a jour FS25..."
-    pwsh -ExecutionPolicy Bypass -File (Join-Path $SCRIPT_DIR "update.ps1")
-} else {
-    Write-Host "Etape 2/4 : Installation absente → SKIP update" -ForegroundColor Yellow
+# =======================
+# Module YAML
+# =======================
+if (-not (Get-Module -ListAvailable powershell-yaml)) {
+    Write-Host "Installation powershell-yaml..."
+    Install-Module powershell-yaml -Force -Scope AllUsers
 }
 
-# --------------------------------------------------
-# Etape 3 - Service Windows (crEation si absent)
-# --------------------------------------------------
-Write-Host "Etape 3/4 : Verification du service Windows..."
+Import-Module powershell-yaml
 
-$nssm = "C:\nssm\nssm.exe"
-if (-not (Test-Path $nssm)) {
-    Write-Host "Installation de NSSM..."
+$Config = Get-Content $CONFIG_PATH -Raw | ConvertFrom-Yaml
+
+$FS25 = $Config.gameservers.fs25
+$InstallDir  = $FS25.install_dir
+$ServiceName = $FS25.service_name
+$AppID       = $FS25.appid
+$User        = $FS25.user
+
+# =======================
+# SteamCMD
+# =======================
+$SteamDir = "C:\steamcmd"
+$SteamExe = "$SteamDir\steamcmd.exe"
+
+if (-not (Test-Path $SteamExe)) {
+    Write-Host "Installation SteamCMD..."
+    New-Item -ItemType Directory -Force -Path $SteamDir | Out-Null
+
+    $zip = "$CACHE\steamcmd.zip"
+    Get-FileRobust -OutFile $zip -Urls @(
+        "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip"
+    )
+
+    Expand-Archive $zip $SteamDir -Force
+}
+
+# =======================
+# NSSM
+# =======================
+$NssmExe = "C:\nssm\nssm.exe"
+
+if (-not (Test-Path $NssmExe)) {
+    Write-Host "Installation NSSM..."
     New-Item -ItemType Directory -Force -Path "C:\nssm" | Out-Null
-    Invoke-WebRequest "https://nssm.cc/release/nssm-2.24.zip" -OutFile "C:\nssm\nssm.zip"
-    Expand-Archive "C:\nssm\nssm.zip" "C:\nssm" -Force
-    Remove-Item "C:\nssm\nssm.zip"
-    $nssm = "C:\nssm\nssm-2.24\win64\nssm.exe"
+
+    $zip = "$CACHE\nssm.zip"
+    Get-FileRobust -OutFile $zip -Urls @(
+        "https://github.com/kirillkovalenko/nssm/releases/download/v2.24/nssm-2.24.zip",
+        "https://nssm.cc/release/nssm-2.24.zip"
+    )
+
+    Expand-Archive $zip "C:\nssm" -Force
+    Copy-Item "C:\nssm\nssm-2.24\win64\nssm.exe" $NssmExe -Force
 }
 
-$StartScript = Join-Path $SCRIPT_DIR "start_fs25.ps1"
+# =======================
+# Installation FS25 (si absent)
+# =======================
+if (-not (Test-Path $InstallDir)) {
+    Write-Host "Installation FS25 via SteamCMD..."
+    New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+
+    & $SteamExe `
+        +force_install_dir "$InstallDir" `
+        +login anonymous `
+        +app_update $AppID validate `
+        +quit
+}
+else {
+    Write-Host "FS25 déjà installé → skip"
+}
+
+# =======================
+# Service Windows (idempotent)
+# =======================
+$StartScript = Join-Path $ROOT "start_fs25.ps1"
 
 if (-not (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) {
-    & $nssm install $ServiceName "pwsh.exe" "-ExecutionPolicy Bypass -File `"$StartScript`""
-    & $nssm set $ServiceName AppDirectory $InstallDir
-    & $nssm set $ServiceName Start SERVICE_AUTO_START
-    Write-Host "Service Windows crEE : $ServiceName" -ForegroundColor Green
-} else {
-    Write-Host "Service $ServiceName dEjà existant → SKIP crEation" -ForegroundColor Yellow
+    Write-Host "Création du service Windows : $ServiceName"
+
+    & $NssmExe install $ServiceName "pwsh.exe" `
+        "-ExecutionPolicy Bypass -File `"$StartScript`""
+
+    & $NssmExe set $ServiceName AppDirectory $InstallDir
+    & $NssmExe set $ServiceName Start SERVICE_AUTO_START
+}
+else {
+    Write-Host "Service déjà existant → skip"
 }
 
-# --------------------------------------------------
-# Etape 4 - DEmarrage / Restart intelligent
-# --------------------------------------------------
-$Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+# =======================
+# Démarrage / Restart propre
+# =======================
+$svc = Get-Service $ServiceName
 
-if ($Service.Status -ne "Running") {
-    Write-Host "DEmarrage du service Windows..."
+if ($svc.Status -eq "Running") {
+    Write-Host "Redémarrage du service..."
+    Restart-Service $ServiceName -Force
+}
+else {
+    Write-Host "Démarrage du service..."
     Start-Service $ServiceName
-    Write-Host "Service dEmarrE." -ForegroundColor Green
-} else {
-    Write-Host "Service dEjà en cours d'exEcution → SKIP restart" -ForegroundColor Yellow
 }
 
-# --------------------------------------------------
-# VErification du port
-# --------------------------------------------------
-Write-Host "VErification du port $GamePort..."
-Start-Sleep 5
-
-if ((Test-NetConnection localhost -Port $GamePort -WarningAction SilentlyContinue).TcpTestSucceeded) {
-    Write-Host "FS25 fonctionne sur le port $GamePort" -ForegroundColor Green
-} else {
-    Write-Host "FS25 ne rEpond pas encore (dEmarrage en cours)" -ForegroundColor Yellow
-}
-
-Write-Host "=== FS25 SETUP TERMINE ===" -ForegroundColor Green
+Write-Host "=== FS25 prêt ===" -ForegroundColor Green
