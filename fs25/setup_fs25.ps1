@@ -108,7 +108,7 @@ if (-not (Test-Path $NssmExe)) {
 
     Download-Tool `
         -Name "NSSM" `
-        -Url "https://github.com/kirillkovalenko/nssm/releases/download/2.24/nssm-2.24.zip" `
+        -Url "http://nssm.cc/release/nssm-2.24.zip" `
         -Destination $NssmZip
 
     Expand-Archive $NssmZip $Cache -Force
