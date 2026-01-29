@@ -6,6 +6,8 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+Write-Host "VERSION SETUP_FS25 2026-01-XX"
+
 # ---------- LOGGING (OBLIGATOIRE EN SYSTEM) ----------
 $LogDir = "C:\fs25\logs"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
