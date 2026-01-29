@@ -8,8 +8,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # --- Définition des chemins ---
-$ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ConfigPath = Join-Path $ROOT "..\..\config.yaml"
+$ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$ConfigPath = Join-Path $ROOT "config.yaml"
 
 # --- Vérification YAML ---
 if (-not (Test-Path $ConfigPath)) {
