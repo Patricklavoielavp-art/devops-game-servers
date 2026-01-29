@@ -6,131 +6,118 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== FS25 Setup starting ==="
+# ---------- LOGGING (OBLIGATOIRE EN SYSTEM) ----------
+$LogDir = "C:\fs25\logs"
+New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+$LogFile = Join-Path $LogDir "setup_fs25.log"
 
-# -------------------------------
-# Resolve ROOT
-# -------------------------------
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RootDir   = Resolve-Path "$ScriptDir\.."
-$ConfigFile = "$RootDir\config.yaml"
+Start-Transcript -Path $LogFile -Append
+whoami
 
-if (-not (Test-Path $ConfigFile)) {
-    throw "config.yaml not found at $ConfigFile"
+Write-Host "=== FS25 SETUP START ===" -ForegroundColor Cyan
+
+# ---------- ROOT / CONFIG ----------
+$ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ConfigPath = Join-Path $ROOT "..\config.yaml"
+
+if (-not (Test-Path $ConfigPath)) {
+    throw "config.yaml introuvable : $ConfigPath"
 }
 
-# -------------------------------
-# Load YAML
-# -------------------------------
-if (-not (Get-Module -ListAvailable powershell-yaml)) {
-    Install-Module powershell-yaml -Force -Scope CurrentUser
-}
-Import-Module powershell-yaml
+Import-Module powershell-yaml -ErrorAction Stop
+$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 
-$Config = ConvertFrom-Yaml (Get-Content $ConfigFile -Raw)
+$InstallDir  = $Config.gameservers.fs25.install_dir
+$ServiceName = $Config.gameservers.fs25.service_name
+$AppID       = $Config.gameservers.fs25.appid
 
-# -------------------------------
-# Variables
-# -------------------------------
-$GameName   = "FS25"
-$Service    = "FS25"
-$AppID      = $Config.fs25.app_id
-$InstallDir = $Config.fs25.install_dir
-$SteamDir   = "C:\steamcmd"
-$SteamExe   = "$SteamDir\steamcmd.exe"
-$NssmDir    = "C:\nssm"
-$NssmExe    = "$NssmDir\nssm.exe"
-$Cache      = "C:\_cache"
-$LogDir     = "$InstallDir\logs"
+# ---------- OUTILS ----------
+$SteamCmdDir = "C:\steamcmd"
+$SteamCmdExe = "$SteamCmdDir\steamcmd.exe"
 
-New-Item -ItemType Directory -Force -Path $SteamDir, $NssmDir, $Cache, $InstallDir, $LogDir | Out-Null
+$NssmDir = "C:\nssm"
+$NssmExe = "$NssmDir\nssm.exe"
 
-# ===============================
-# Ensure NSSM
-# ===============================
-function Ensure-NSSM {
+# ---------- FONCTIONS ----------
+function Download-File {
+    param ($Url, $Dest)
 
-    if (-not (Test-Path $NssmExe)) {
-        Write-Host "Installing NSSM..."
-        $Zip = "$Cache\nssm.zip"
-        $Url = "http://nssm.cc/release/nssm-2.24.zip"
-
-        try { Start-BitsTransfer $Url $Zip }
-        catch { Invoke-WebRequest $Url -OutFile $Zip -UseBasicParsing }
-
-        Expand-Archive $Zip $Cache -Force
-        Copy-Item "$Cache\nssm-2.24\win64\nssm.exe" $NssmExe -Force
-    }
-
-    Set-Alias nssm $NssmExe -Scope Global
-    & $NssmExe version | Out-Null
-}
-
-Ensure-NSSM
-
-# ===============================
-# Ensure SteamCMD
-# ===============================
-function Ensure-SteamCMD {
-
-    if (-not (Test-Path $SteamExe)) {
-        Write-Host "Installing SteamCMD..."
-        $Zip = "$Cache\steamcmd.zip"
-        $Url = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip"
-
-        try { Start-BitsTransfer $Url $Zip }
-        catch { Invoke-WebRequest $Url -OutFile $Zip -UseBasicParsing }
-
-        Expand-Archive $Zip $SteamDir -Force
+    try {
+        Start-BitsTransfer -Source $Url -Destination $Dest -ErrorAction Stop
+    } catch {
+        Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing
     }
 }
 
-Ensure-SteamCMD
+# ---------- STEAMCMD ----------
+if (-not (Test-Path $SteamCmdExe)) {
+    Write-Host "Installation SteamCMD..."
+    New-Item -ItemType Directory -Force -Path $SteamCmdDir | Out-Null
 
-# ===============================
-# Install or Update FS25
-# ===============================
-$SteamArgs = @(
-    "+force_install_dir", "$InstallDir"
-    "+login", "anonymous"
-    "+app_update", "$AppID", "validate"
-    "+quit"
-)
+    $zip = "$SteamCmdDir\steamcmd.zip"
+    Download-File "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" $zip
 
-Write-Host "Installing / Updating FS25..."
-& $SteamExe $SteamArgs
-
-# ===============================
-# Service management
-# ===============================
-function Service-Exists {
-    Get-Service -Name $Service -ErrorAction SilentlyContinue
+    Expand-Archive $zip $SteamCmdDir -Force
+    Remove-Item $zip
+} else {
+    Write-Host "SteamCMD deja installe"
 }
 
-function Remove-ServiceSafe {
-    if (Service-Exists) {
-        Write-Host "Removing existing service..."
-        nssm stop $Service | Out-Null
-        nssm remove $Service confirm | Out-Null
-    }
+# ---------- NSSM ----------
+if (-not (Test-Path $NssmExe)) {
+    Write-Host "Installation NSSM..."
+
+    New-Item -ItemType Directory -Force -Path $NssmDir | Out-Null
+    $zip = "$NssmDir\nssm.zip"
+
+    Download-File "https://nssm.cc/release/nssm-2.24.zip" $zip
+    Expand-Archive $zip $NssmDir -Force
+
+    Copy-Item "$NssmDir\nssm-2.24\win64\nssm.exe" $NssmExe -Force
+    Remove-Item $zip
+} else {
+    Write-Host "NSSM deja installe"
 }
 
-function Create-Service {
-    Write-Host "Creating service..."
-    nssm install $Service "$InstallDir\FarmingSimulator2025DedicatedServer.exe"
-    nssm set $Service AppDirectory $InstallDir
-    nssm set $Service AppStdout "$LogDir\stdout.log"
-    nssm set $Service AppStderr "$LogDir\stderr.log"
-    nssm set $Service Start SERVICE_AUTO_START
+# ---------- INSTALL FS25 ----------
+if (-not (Test-Path $InstallDir)) {
+    Write-Host "FS25 absent -> installation"
+    pwsh.exe -ExecutionPolicy Bypass -File "$ROOT\install.ps1"
+} else {
+    Write-Host "FS25 deja installe"
 }
 
-Remove-ServiceSafe
-Create-Service
+# ---------- UPDATE FS25 ----------
+Write-Host "Mise a jour FS25"
+pwsh.exe -ExecutionPolicy Bypass -File "$ROOT\update.ps1"
 
-# ===============================
-# Start service
-# ===============================
-Write-Host "Starting service..."
-Start-Service $Service
+# ---------- SERVICE WINDOWS ----------
+$ExistingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
-Write-Host "=== FS25 Setup complete ==="
+if ($ExistingService) {
+    Write-Host "Service existant -> suppression"
+    Stop-Service $ServiceName -Force -ErrorAction SilentlyContinue
+    & $NssmExe remove $ServiceName confirm
+}
+
+Write-Host "Creation du service Windows"
+$StartScript = Join-Path $ROOT "start_fs25.ps1"
+
+& $NssmExe install $ServiceName "pwsh.exe" "-ExecutionPolicy Bypass -File `"$StartScript`""
+& $NssmExe set $ServiceName AppDirectory $InstallDir
+& $NssmExe set $ServiceName Start SERVICE_AUTO_START
+
+# logs service
+& $NssmExe set $ServiceName AppStdout "C:\fs25\logs\fs25_stdout.log"
+& $NssmExe set $ServiceName AppStderr "C:\fs25\logs\fs25_stderr.log"
+& $NssmExe set $ServiceName AppRotateFiles 1
+
+# ---------- START SERVICE ----------
+Write-Host "Demarrage du service FS25"
+Start-Service $ServiceName
+
+Start-Sleep 5
+Get-Service $ServiceName
+
+Write-Host "=== FS25 SETUP TERMINE ===" -ForegroundColor Green
+Stop-Transcript
