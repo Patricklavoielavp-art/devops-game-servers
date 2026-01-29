@@ -1,64 +1,100 @@
-# ---------------------------------------------
-# SECTION SERVICE FS25 - Création et démarrage
-# ---------------------------------------------
-$ServiceName = "FS25-Server"
-$NssmDir = "C:\nssm"
-$NssmExe = Join-Path $NssmDir "nssm.exe"
-$StartScript = "C:\FS25\start_fs25.ps1"
-$LogDir = "C:\FS25\logs"
+# setup_fs25.ps1
+# Setup et lancement FS25 Server automatique
+# Author: Patrick
+# PS7 compatible, Windows Server 2022
 
-# --- Création dossier logs ---
-if (-not (Test-Path $LogDir)) {
-    New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
-}
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
 
-# --- Téléchargement NSSM si absent ---
-if (-not (Test-Path $NssmExe)) {
-    Write-Host "Téléchargement de NSSM..."
-    New-Item -ItemType Directory -Force -Path $NssmDir | Out-Null
-    $NssmZip = Join-Path $NssmDir "nssm.zip"
-    
-    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile $NssmZip
-    Expand-Archive -Path $NssmZip -DestinationPath $NssmDir -Force
-    Remove-Item $NssmZip
-    
-    # NSSM se trouve généralement dans nssm-2.24\win64\nssm.exe
-    $NssmExe = Join-Path $NssmDir "nssm-2.24\win64\nssm.exe"
-}
+# --- ROOT = dossier racine du repo ---
+$ScriptPath = $MyInvocation.MyCommand.Path
+$ROOT = Split-Path -Parent (Split-Path -Parent $ScriptPath)
+Write-Host "ROOT defini sur $ROOT"
 
-# --- Vérification du script start_fs25.ps1 ---
-if (-not (Test-Path $StartScript)) {
-    Write-Host "Erreur: start_fs25.ps1 introuvable à $StartScript" -ForegroundColor Red
+# --- Chemins absolus ---
+$Fs25Dir      = Join-Path $ROOT "fs25"
+$ConfigPath   = Join-Path $ROOT "config.yaml"
+$StartScript  = Join-Path $Fs25Dir "start_fs25.ps1"
+$SteamCmdPath = "C:\steamcmd\steamcmd.exe"
+$NssmPath     = "C:\nssm\nssm.exe"
+
+# --- Verification config.yaml ---
+if (-not (Test-Path $ConfigPath)) {
+    Write-Host "Erreur: config.yaml introuvable a $ConfigPath" -ForegroundColor Red
     exit 1
 }
 
-# --- Suppression du service existant ---
+# --- Charger YAML ---
+Import-Module powershell-yaml -ErrorAction Stop
+$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+
+$InstallDir = $Config.gameservers.fs25.install_dir
+$ServiceName = $Config.gameservers.fs25.service_name
+$AppID      = $Config.gameservers.fs25.appid
+$User       = $Config.gameservers.fs25.user
+$BackupDir  = $Config.gameservers.fs25.backup.source
+
+Write-Host "FS25 install dir: $InstallDir"
+Write-Host "Service name: $ServiceName"
+
+# --- Verification SteamCMD ---
+if (-not (Test-Path $SteamCmdPath)) {
+    Write-Host "SteamCMD non present, telechargement..."
+    New-Item -ItemType Directory -Force -Path "C:\steamcmd" | Out-Null
+    Invoke-WebRequest -Uri "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" -OutFile "C:\steamcmd\steamcmd.zip"
+    Expand-Archive -Path "C:\steamcmd\steamcmd.zip" -DestinationPath "C:\steamcmd" -Force
+    Remove-Item "C:\steamcmd\steamcmd.zip"
+    Write-Host "SteamCMD installe."
+}
+
+# --- Verification NSSM ---
+if (-not (Test-Path $NssmPath)) {
+    Write-Host "NSSM non present, telechargement..."
+    New-Item -ItemType Directory -Force -Path "C:\nssm" | Out-Null
+    $nssmZip = "C:\nssm\nssm.zip"
+    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile $nssmZip
+    Expand-Archive -Path $nssmZip -DestinationPath "C:\nssm" -Force
+    Remove-Item $nssmZip
+    # On prend l'exe correct (win64)
+    Copy-Item "C:\nssm\win64\nssm.exe" $NssmPath -Force
+    Write-Host "NSSM installe."
+}
+
+# --- Creation des dossiers ---
+Write-Host "Creation des dossiers..."
+New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+New-Item -ItemType Directory -Force -Path $BackupDir | Out-Null
+Write-Host "Dossiers crees."
+
+# --- Installation FS25 si manquant ---
+if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
+    Write-Host "FS25 non installe, lancement installation via SteamCMD..."
+    & $SteamCmdPath +force_install_dir "$InstallDir" +login anonymous +app_update $AppID validate +quit
+    Write-Host "FS25 installe."
+} else {
+    Write-Host "FS25 deja installe, installation ignoree."
+}
+
+# --- Creation / recreation service FS25 ---
 if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
-    Write-Host "Service $ServiceName existe deja. Arret et suppression..."
-    Stop-Service -Name $ServiceName -Force
-    & "$NssmExe" remove $ServiceName confirm
+    Write-Host "Service $ServiceName existe deja, suppression..."
+    Stop-Service $ServiceName -Force -ErrorAction SilentlyContinue
+    & $NssmPath remove $ServiceName confirm
     Write-Host "Service supprime."
 }
 
-# --- Création du service avec logs ---
-Write-Host "Creation du service $ServiceName..."
-& "$NssmExe" install $ServiceName `
-    "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" `
-    "-NoProfile -ExecutionPolicy Bypass -File `"$StartScript`""
+Write-Host "Creation service $ServiceName..."
+& $NssmPath install $ServiceName $StartScript
+Write-Host "Service cree."
 
-# --- Configuration des logs NSSM ---
-& "$NssmExe" set $ServiceName AppStdout (Join-Path $LogDir "stdout.log")
-& "$NssmExe" set $ServiceName AppStderr (Join-Path $LogDir "stderr.log")
-& "$NssmExe" set $ServiceName AppRotateFiles 1
-
-# --- Démarrage du service ---
-Write-Host "Demarrage du service $ServiceName..."
-Start-Service -Name $ServiceName
-
-# --- Vérification de l'état du service ---
-$svc = Get-Service -Name $ServiceName
-if ($svc.Status -eq "Running") {
-    Write-Host "Service $ServiceName demarre avec succes." -ForegroundColor Green
-} else {
-    Write-Host "Erreur: le service $ServiceName n'a pas demarre. Consultez $LogDir\stdout.log et stderr.log" -ForegroundColor Red
+# --- Demarrage service ---
+try {
+    Write-Host "Demarrage service $ServiceName..."
+    Start-Service -Name $ServiceName
+    Write-Host "Service demarre avec succes."
+} catch {
+    Write-Host "Erreur: impossible de demarrer le service $ServiceName." -ForegroundColor Red
+    Write-Host $_
 }
+
+Write-Host "Setup FS25 termine."
