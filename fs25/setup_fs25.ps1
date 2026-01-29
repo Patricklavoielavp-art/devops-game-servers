@@ -1,105 +1,111 @@
 <#
-    FS25 - SETUP COMPLET AUTOMATIQUE
-    Author : Patrick
-    Description : Installation complète et setup automatique du serveur FS25
+    setup_fs25.ps1
+    Installation et configuration automatique du serveur FS25
+    - Telechargement des prerequis (SteamCMD, NSSM)
+    - Creation de l'utilisateur
+    - Creation et lancement du service Windows FS25
 #>
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# --- Définition des chemins ---
+# ------------------------------
+# ROOT et config
+# ------------------------------
 $ROOT = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $ConfigPath = Join-Path $ROOT "config.yaml"
 
-# --- Vérification YAML ---
 if (-not (Test-Path $ConfigPath)) {
-    Write-Host "Config YAML introuvable à $ConfigPath" -ForegroundColor Red
+    Write-Host "Config YAML introuvable: $ConfigPath" -ForegroundColor Red
     exit 1
 }
 
-# --- Chargement du YAML ---
-Import-Module powershell-yaml -ErrorAction Stop
+# Chargement YAML
+. "$ROOT\fs25\yaml.ps1"
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 
-$InstallDir  = $Config.gameservers.fs25.install_dir
-$BackupDir   = $Config.gameservers.fs25.backup.source
-$User        = $Config.gameservers.fs25.user
-$AppID       = $Config.gameservers.fs25.appid
+$InstallDir = $Config.gameservers.fs25.install_dir
+$User = $Config.gameservers.fs25.user
+$AppID = $Config.gameservers.fs25.appid
 $ServiceName = $Config.gameservers.fs25.service_name
-$GamePort    = $Config.gameservers.fs25.ports.game
+$BackupDir = $Config.gameservers.fs25.backup.source
 
-# --- Vérification SteamCMD ---
-$SteamCmdDir = "C:\steamcmd"
-$SteamCmd = Join-Path $SteamCmdDir "steamcmd.exe"
-if (-not (Test-Path $SteamCmd)) {
-    Write-Host "Téléchargement et extraction de SteamCMD..." -ForegroundColor Cyan
-    New-Item -ItemType Directory -Force -Path $SteamCmdDir | Out-Null
-    Invoke-WebRequest -Uri "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" `
-                      -OutFile "$SteamCmdDir\steamcmd.zip"
-    Expand-Archive -Path "$SteamCmdDir\steamcmd.zip" -DestinationPath $SteamCmdDir -Force
-    Remove-Item "$SteamCmdDir\steamcmd.zip"
+# ------------------------------
+# SteamCMD
+# ------------------------------
+$SteamCmdPath = "C:\steamcmd\steamcmd.exe"
+if (-not (Test-Path $SteamCmdPath)) {
+    Write-Host "Installation de SteamCMD..."
+    New-Item -ItemType Directory -Force -Path "C:\steamcmd" | Out-Null
+    Invoke-WebRequest -Uri "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" -OutFile "C:\steamcmd\steamcmd.zip"
+    Expand-Archive -Path "C:\steamcmd\steamcmd.zip" -DestinationPath "C:\steamcmd" -Force
+    Remove-Item "C:\steamcmd\steamcmd.zip"
+    Write-Host "SteamCMD installe avec succes."
 }
 
-# --- Vérification NSSM ---
-$NssmDir = "C:\nssm"
-$NssmExe = Join-Path $NssmDir "nssm.exe"
-if (-not (Test-Path $NssmExe)) {
-    Write-Host "Téléchargement et extraction de NSSM..." -ForegroundColor Cyan
-    New-Item -ItemType Directory -Force -Path $NssmDir | Out-Null
-    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "$NssmDir\nssm.zip"
-    Expand-Archive -Path "$NssmDir\nssm.zip" -DestinationPath $NssmDir -Force
-    Remove-Item "$NssmDir\nssm.zip"
-    # NSSM est extrait dans nssm-2.24\win64
-    $NssmExe = Join-Path $NssmDir "nssm-2.24\win64\nssm.exe"
+# ------------------------------
+# NSSM
+# ------------------------------
+$NssmPath = "C:\nssm\nssm.exe"
+if (-not (Test-Path $NssmPath)) {
+    Write-Host "Installation de NSSM..."
+    New-Item -ItemType Directory -Force -Path "C:\nssm" | Out-Null
+    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile "C:\nssm\nssm.zip"
+    Expand-Archive -Path "C:\nssm\nssm.zip" -DestinationPath "C:\nssm" -Force
+    Remove-Item "C:\nssm\nssm.zip"
+    Write-Host "NSSM installe avec succes."
 }
 
-# --- Création utilisateur ---
+# ------------------------------
+# Creation de l'utilisateur
+# ------------------------------
 if (-not (Get-LocalUser -Name $User -ErrorAction SilentlyContinue)) {
-    Write-Host "Création de l'utilisateur $User..." -ForegroundColor Cyan
+    Write-Host "Creation de l'utilisateur $User..."
     New-LocalUser -Name $User -NoPassword
+    Write-Host "Utilisateur $User cree."
 }
 
-# --- Création des dossiers ---
-Write-Host "Création des dossiers..." -ForegroundColor Cyan
+# ------------------------------
+# Creation des dossiers
+# ------------------------------
+Write-Host "Creation des dossiers..."
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 New-Item -ItemType Directory -Force -Path $BackupDir | Out-Null
+Write-Host "Dossiers crees."
 
-# --- Installation / mise à jour FS25 via SteamCMD ---
-Write-Host "Installation / mise à jour du serveur FS25..." -ForegroundColor Cyan
-$steamArgs = @(
-    "+force_install_dir", "$InstallDir",
-    "+login", "anonymous",
-    "+app_update", "$AppID", "validate",
-    "+quit"
-)
-& $SteamCmd @steamArgs
+# ------------------------------
+# Installation FS25 via SteamCMD
+# ------------------------------
+if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
+    Write-Host "Installation du serveur FS25..."
+    & $SteamCmdPath +force_install_dir "$InstallDir" +login anonymous +app_update $AppID validate +quit
+    Write-Host "Installation FS25 terminee."
+} else {
+    Write-Host "FS25 deja installe, installation ignoree."
+}
 
-# --- Service Windows ---
+# ------------------------------
+# Creation du service Windows FS25
+# ------------------------------
 $ServiceExists = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 if ($ServiceExists) {
-    Write-Host "Service $ServiceName déjà existant, arrêt et suppression..." -ForegroundColor Yellow
+    Write-Host "Service $ServiceName existe deja. Arret et suppression..."
     Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
-    & $NssmExe remove $ServiceName confirm
+    & "$NssmPath" remove $ServiceName confirm
+    Write-Host "Service supprime."
 }
 
-Write-Host "Création du service Windows $ServiceName..." -ForegroundColor Cyan
-$StartScript = Join-Path $ROOT "start_fs25.ps1"
-& $NssmExe install $ServiceName "powershell.exe" "-ExecutionPolicy Bypass -File `"$StartScript`""
-& $NssmExe set $ServiceName AppDirectory $InstallDir
-& $NssmExe set $ServiceName Start SERVICE_AUTO_START
+Write-Host "Creation du service $ServiceName..."
+& "$NssmPath" install $ServiceName "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" "-ExecutionPolicy Bypass -File `"$InstallDir\start_fs25.ps1`""
+Write-Host "Service cree."
 
-# --- Démarrage du service ---
-Write-Host "Démarrage du service $ServiceName..." -ForegroundColor Cyan
-Start-Service -Name $ServiceName
-
-# --- Vérification du port ---
-Write-Host "Vérification du port $GamePort..." -ForegroundColor Cyan
-Start-Sleep -Seconds 5
-$Connection = Test-NetConnection -ComputerName "localhost" -Port $GamePort -WarningAction SilentlyContinue
-if ($Connection.TcpTestSucceeded) {
-    Write-Host "Le serveur FS25 fonctionne sur le port $GamePort." -ForegroundColor Green
-} else {
-    Write-Host "Le serveur FS25 ne répond pas encore sur le port $GamePort. Attendez 1-2 minutes." -ForegroundColor Yellow
+# ------------------------------
+# Demarrage du service
+# ------------------------------
+try {
+    Start-Service -Name $ServiceName
+    Write-Host "Service $ServiceName demarre avec succes." -ForegroundColor Green
+} catch {
+    Write-Host "Erreur: impossible de demarrer le service $ServiceName." -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
 }
-
-Write-Host "Setup FS25 terminé." -ForegroundColor Green
