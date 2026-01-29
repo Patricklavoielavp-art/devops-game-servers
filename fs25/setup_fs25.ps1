@@ -96,7 +96,9 @@ if ($ServiceExists) {
 }
 
 Write-Host "Creation du service $ServiceName..."
-& "$NssmPath" install $ServiceName "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" "-ExecutionPolicy Bypass -File `"$InstallDir\start_fs25.ps1`""
+$ScriptPath = Join-Path $InstallDir "start_fs25.ps1"
+& "$NssmPath" install $ServiceName "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" "-NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
+
 Write-Host "Service cree."
 
 # ------------------------------
