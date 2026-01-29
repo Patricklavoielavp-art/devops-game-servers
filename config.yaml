@@ -49,7 +49,7 @@ gameservers:
       discord_webhook: ""
 
   fs25:
-    appid: 2430930
+    appid: 1862630
     install_dir: "C:\\FS25"
     user: "fs25"
     service_name: "FS25-Server"
