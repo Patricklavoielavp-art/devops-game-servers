@@ -75,15 +75,15 @@ Write-Host "Dossiers crees."
 if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
     Write-Host "FS25 non installe, lancement installation via SteamCMD..."
 
-    # --- Construire commande SteamCMD ---
+    # --- Construire script SteamCMD pour +runscript ---
     $loginCmd = "$SteamUser $SteamPass"
     if ($SteamGuard -ne "") { $loginCmd += " $SteamGuard" }
 
     $steamScript = @"
-+force_install_dir $InstallDir
-+login $loginCmd
-+app_update $AppID validate
-+quit
+force_install_dir $InstallDir
+login $loginCmd
+app_update $AppID validate
+quit
 "@
 
     $TempFile = "$env:TEMP\fs25_steamcmd.txt"
