@@ -1,5 +1,5 @@
 <#
-    FS25 - SETUP IDÉMPOTENT
+    FS25 - SETUP IDEMPOTENT
     Auteur : Patrick
     Description : Installation complète et sûre du serveur FS25
 #>
@@ -7,7 +7,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== FS25 SETUP (IDÉMPOTENT) ===" -ForegroundColor Cyan
+Write-Host "=== FS25 SETUP (IDEMPOTENT) ===" -ForegroundColor Cyan
 
 # --------------------------------------------------
 # Paths & YAML
@@ -30,29 +30,29 @@ $ServiceName = $Fs25.service_name
 $GamePort    = $Fs25.ports.game
 
 # --------------------------------------------------
-# Étape 1 - Installation (si absente)
+# Etape 1 - Installation (si absente)
 # --------------------------------------------------
 if (-not (Test-Path $InstallDir)) {
-    Write-Host "Étape 1/4 : Installation FS25..."
+    Write-Host "Etape 1/4 : Installation FS25..."
     pwsh -ExecutionPolicy Bypass -File (Join-Path $SCRIPT_DIR "install.ps1")
 } else {
-    Write-Host "Étape 1/4 : FS25 déjà installé → SKIP" -ForegroundColor Yellow
+    Write-Host "Etape 1/4 : FS25 deja installE → SKIP" -ForegroundColor Yellow
 }
 
 # --------------------------------------------------
-# Étape 2 - Mise à jour (si installé)
+# Etape 2 - Mise à jour (si installE)
 # --------------------------------------------------
 if (Test-Path $InstallDir) {
-    Write-Host "Étape 2/4 : Mise à jour FS25..."
+    Write-Host "Etape 2/4 : Mise a jour FS25..."
     pwsh -ExecutionPolicy Bypass -File (Join-Path $SCRIPT_DIR "update.ps1")
 } else {
-    Write-Host "Étape 2/4 : Installation absente → SKIP update" -ForegroundColor Yellow
+    Write-Host "Etape 2/4 : Installation absente → SKIP update" -ForegroundColor Yellow
 }
 
 # --------------------------------------------------
-# Étape 3 - Service Windows (création si absent)
+# Etape 3 - Service Windows (crEation si absent)
 # --------------------------------------------------
-Write-Host "Étape 3/4 : Vérification du service Windows..."
+Write-Host "Etape 3/4 : Verification du service Windows..."
 
 $nssm = "C:\nssm\nssm.exe"
 if (-not (Test-Path $nssm)) {
@@ -70,34 +70,34 @@ if (-not (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue)) {
     & $nssm install $ServiceName "pwsh.exe" "-ExecutionPolicy Bypass -File `"$StartScript`""
     & $nssm set $ServiceName AppDirectory $InstallDir
     & $nssm set $ServiceName Start SERVICE_AUTO_START
-    Write-Host "Service Windows créé : $ServiceName" -ForegroundColor Green
+    Write-Host "Service Windows crEE : $ServiceName" -ForegroundColor Green
 } else {
-    Write-Host "Service $ServiceName déjà existant → SKIP création" -ForegroundColor Yellow
+    Write-Host "Service $ServiceName dEjà existant → SKIP crEation" -ForegroundColor Yellow
 }
 
 # --------------------------------------------------
-# Étape 4 - Démarrage / Restart intelligent
+# Etape 4 - DEmarrage / Restart intelligent
 # --------------------------------------------------
 $Service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 
 if ($Service.Status -ne "Running") {
-    Write-Host "Démarrage du service Windows..."
+    Write-Host "DEmarrage du service Windows..."
     Start-Service $ServiceName
-    Write-Host "Service démarré." -ForegroundColor Green
+    Write-Host "Service dEmarrE." -ForegroundColor Green
 } else {
-    Write-Host "Service déjà en cours d'exécution → SKIP restart" -ForegroundColor Yellow
+    Write-Host "Service dEjà en cours d'exEcution → SKIP restart" -ForegroundColor Yellow
 }
 
 # --------------------------------------------------
-# Vérification du port
+# VErification du port
 # --------------------------------------------------
-Write-Host "Vérification du port $GamePort..."
+Write-Host "VErification du port $GamePort..."
 Start-Sleep 5
 
 if ((Test-NetConnection localhost -Port $GamePort -WarningAction SilentlyContinue).TcpTestSucceeded) {
     Write-Host "FS25 fonctionne sur le port $GamePort" -ForegroundColor Green
 } else {
-    Write-Host "FS25 ne répond pas encore (démarrage en cours)" -ForegroundColor Yellow
+    Write-Host "FS25 ne rEpond pas encore (dEmarrage en cours)" -ForegroundColor Yellow
 }
 
-Write-Host "=== FS25 SETUP TERMINÉ ===" -ForegroundColor Green
+Write-Host "=== FS25 SETUP TERMINE ===" -ForegroundColor Green
