@@ -6,6 +6,10 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+param(
+    [switch]$SkipInstall
+)
+
 # --- ROOT = dossier racine du repo ---
 $ScriptPath = $MyInvocation.MyCommand.Path
 $ROOT = Split-Path -Parent (Split-Path -Parent $ScriptPath)
@@ -28,11 +32,11 @@ if (-not (Test-Path $ConfigPath)) {
 Import-Module powershell-yaml -ErrorAction Stop
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 
-$InstallDir = $Config.gameservers.fs25.install_dir
+$InstallDir  = $Config.gameservers.fs25.install_dir
 $ServiceName = $Config.gameservers.fs25.service_name
-$AppID      = $Config.gameservers.fs25.appid
-$User       = $Config.gameservers.fs25.user
-$BackupDir  = $Config.gameservers.fs25.backup.source
+$AppID       = $Config.gameservers.fs25.appid
+$User        = $Config.gameservers.fs25.user
+$BackupDir   = $Config.gameservers.fs25.backup.source
 
 # --- Steam login depuis YAML ---
 $SteamUser  = $Config.gameservers.fs25.steam.username
@@ -60,7 +64,6 @@ if (-not (Test-Path $NssmPath)) {
     Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile $nssmZip
     Expand-Archive -Path $nssmZip -DestinationPath "C:\nssm" -Force
     Remove-Item $nssmZip
-    # On prend l'exe correct (win64)
     Copy-Item "C:\nssm\win64\nssm.exe" $NssmPath -Force
     Write-Host "NSSM installe."
 }
@@ -71,39 +74,42 @@ New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 New-Item -ItemType Directory -Force -Path $BackupDir | Out-Null
 Write-Host "Dossiers crees."
 
-# --- Installation FS25 si manquant ---
-if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
-    Write-Host "FS25 non installe, lancement installation via SteamCMD..."
+# --- Installation FS25 si manquant et SkipInstall non actif ---
+if (-not $SkipInstall) {
+    if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
+        Write-Host "FS25 non installe, lancement installation via SteamCMD..."
 
-    # Construire script pour +runscript
-    $loginCmd = "$SteamUser $SteamPass"
-    if ($SteamGuard -ne "") { $loginCmd += " $SteamGuard" }
+        # Construire script pour +runscript
+        $loginCmd = "$SteamUser $SteamPass"
+        if ($SteamGuard -ne "") { $loginCmd += " $SteamGuard" }
 
-    $steamScript = @"
+        $steamScript = @"
 force_install_dir $InstallDir
 login $loginCmd
 app_update $AppID validate
 quit
 "@
 
-    $TempFile = "$env:TEMP\fs25_steamcmd.txt"
-    $steamScript | Set-Content $TempFile -Force
+        $TempFile = "$env:TEMP\fs25_steamcmd.txt"
+        $steamScript | Set-Content $TempFile -Force
 
-    # Lancer SteamCMD et capturer la sortie
-    $proc = Start-Process -FilePath $SteamCmdPath -ArgumentList "+runscript `"$TempFile`"" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\fs25_steamcmd_out.txt" -RedirectStandardError "$env:TEMP\fs25_steamcmd_err.txt"
+        # Lancer SteamCMD et capturer la sortie
+        $proc = Start-Process -FilePath $SteamCmdPath -ArgumentList "+runscript `"$TempFile`"" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\fs25_steamcmd_out.txt" -RedirectStandardError "$env:TEMP\fs25_steamcmd_err.txt"
 
-    Remove-Item $TempFile
+        Remove-Item $TempFile
 
-    # Vérifier si l'installation a réellement créé ShooterGame
-    if (Test-Path (Join-Path $InstallDir "ShooterGame")) {
-        Write-Host "FS25 installe avec succes."
+        if (Test-Path (Join-Path $InstallDir "ShooterGame")) {
+            Write-Host "FS25 installe avec succes."
+        } else {
+            Write-Host "Erreur: FS25 n'a pas pu etre installe. Verifiez que votre compte Steam a acces au jeu." -ForegroundColor Red
+            Write-Host "Voir les logs SteamCMD dans $env:TEMP\fs25_steamcmd_out.txt et $env:TEMP\fs25_steamcmd_err.txt"
+            exit 1
+        }
     } else {
-        Write-Host "Erreur: FS25 n'a pas pu etre installe. Verifiez que votre compte Steam a acces au jeu." -ForegroundColor Red
-        Write-Host "Voir les logs SteamCMD dans $env:TEMP\fs25_steamcmd_out.txt et $env:TEMP\fs25_steamcmd_err.txt"
-        exit 1
+        Write-Host "FS25 deja installe, installation ignoree."
     }
 } else {
-    Write-Host "FS25 deja installe, installation ignoree."
+    Write-Host "SkipInstall actif: installation FS25 ignoree."
 }
 
 # --- Creation / recreation service FS25 ---
