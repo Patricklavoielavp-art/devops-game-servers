@@ -34,6 +34,11 @@ $AppID      = $Config.gameservers.fs25.appid
 $User       = $Config.gameservers.fs25.user
 $BackupDir  = $Config.gameservers.fs25.backup.source
 
+# --- Steam login depuis YAML ---
+$SteamUser  = $Config.gameservers.fs25.steam.username
+$SteamPass  = $Config.gameservers.fs25.steam.password
+$SteamGuard = $Config.gameservers.fs25.steam.steam_guard_code
+
 Write-Host "FS25 install dir: $InstallDir"
 Write-Host "Service name: $ServiceName"
 
@@ -69,7 +74,24 @@ Write-Host "Dossiers crees."
 # --- Installation FS25 si manquant ---
 if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
     Write-Host "FS25 non installe, lancement installation via SteamCMD..."
-    & $SteamCmdPath +force_install_dir "$InstallDir" +login anonymous +app_update $AppID validate +quit
+
+    # --- Construire commande SteamCMD ---
+    $loginCmd = "$SteamUser $SteamPass"
+    if ($SteamGuard -ne "") { $loginCmd += " $SteamGuard" }
+
+    $steamScript = @"
+login $loginCmd
+force_install_dir $InstallDir
+app_update $AppID validate
+quit
+"@
+
+    $TempFile = "$env:TEMP\fs25_steamcmd.txt"
+    $steamScript | Set-Content $TempFile -Force
+
+    Start-Process -FilePath $SteamCmdPath -ArgumentList "+runscript `"$TempFile`"" -Wait
+    Remove-Item $TempFile
+
     Write-Host "FS25 installe."
 } else {
     Write-Host "FS25 deja installe, installation ignoree."

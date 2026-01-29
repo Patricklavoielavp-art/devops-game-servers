@@ -24,7 +24,7 @@ gameservers:
       enabled: true
       interval: 60
       restart_on_fail: true
-      discord_webhook: "" #optionnel lien discord pour notifs
+      discord_webhook: ""
 
   palworld:
     enabled: true
@@ -49,10 +49,17 @@ gameservers:
       discord_webhook: ""
 
   fs25:
+    enabled: true
+    os: windows
+    host: "localhost"
+    user: "fs25"
     appid: 1862630
     install_dir: "C:\\FS25"
-    user: "fs25"
     service_name: "FS25-Server"
+    steam:
+      username: "massivedude544"        # <- ajouter ton login Steam
+      password: "$ToyotaTundra2007$"           # <- ajouter ton mot de passe Steam
+      steam_guard_code: ""                 # <- si Steam Guard activé
     ports:
       game: 10823
     backup:
