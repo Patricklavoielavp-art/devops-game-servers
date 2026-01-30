@@ -77,5 +77,4 @@ gameservers:
         session_name: "ModdedFarm"
         max_players: 10
         map: "Zielonka"
-        mods:
-          - [] # ajouter le nom du .zip dans le dossier /mods
+        mods: [] # ajouter le nom du .zip dans le dossier /mods

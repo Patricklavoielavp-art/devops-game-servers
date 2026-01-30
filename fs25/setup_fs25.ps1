@@ -1,47 +1,53 @@
+# ================================
 # setup_fs25.ps1
-# Setup FS25 Dedicated Server multi-instance (NSSM + Firewall)
+# Création des instances FS25 Vanilla/Modded
+# Crée dossiers, services NSSM et firewall
 # Author: Patrick
-# PS7 compatible, Windows Server 2022
+# ================================
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# Charger config
+# --- Chemins et outils ---
 $ROOT = "C:\devops-game-servers"
 $ConfigPath = Join-Path $ROOT "config.yaml"
+$NssmPath = "C:\Path\To\nssm.exe"  # <-- mettre le chemin correct vers NSSM
+$InstancesDir = $FS25.install_dir
 
+# --- Charger config YAML ---
 Import-Module powershell-yaml -ErrorAction Stop
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 $FS25 = $Config.gameservers.fs25
 
-$InstancesDir = Join-Path $ROOT "fs25\instances"
-
-# Vérifier NSSM
-$NssmPath = "C:\nssm\nssm.exe"
-if (-not (Test-Path $NssmPath)) {
-    Write-Host "Installation NSSM..."
-    New-Item -ItemType Directory -Force -Path "C:\nssm" | Out-Null
-    $zip = "C:\nssm\nssm.zip"
-    Invoke-WebRequest "https://nssm.cc/release/nssm-2.24.zip" -OutFile $zip
-    Expand-Archive $zip "C:\nssm" -Force
-    Copy-Item "C:\nssm\win64\nssm.exe" $NssmPath -Force
-    Remove-Item $zip
-}
-
-# Créer dossier Instances
-if (-not (Test-Path $InstancesDir)) { New-Item -ItemType Directory -Force -Path $InstancesDir | Out-Null }
-
-# Créer services pour chaque instance
+# --- Créer services pour chaque instance ---
 foreach ($instance in $FS25.instances) {
 
-    $InstancePath = Join-Path $InstancesDir $instance.name
+    $InstancePath = Join-Path $FS25.install_dir $instance.name
+    Write-Host "Création de l'instance : $InstancePath"
 
-    # Créer dossiers instance
+    # --- Créer dossiers de l'instance ---
     foreach ($d in @("Saved","Mods","logs","Backups")) {
         $Path = Join-Path $InstancePath $d
-        if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
+        if (-not (Test-Path $Path)) {
+            New-Item -ItemType Directory -Force -Path $Path | Out-Null
+            Write-Host "Dossier créé : $Path"
+        }
     }
 
+    # --- Créer sous-dossiers pour chaque mod si existant ---
+    if ($instance.mods -and $instance.mods.Count -gt 0) {
+        foreach ($mod in $instance.mods) {
+            if ($mod) { # Ignore les entrées vides
+                $ModPath = Join-Path $InstancePath "Mods\$mod"
+                if (-not (Test-Path $ModPath)) {
+                    New-Item -ItemType Directory -Force -Path $ModPath | Out-Null
+                    Write-Host "Sous-dossier mod créé : $ModPath"
+                }
+            }
+        }
+    }
+
+    # --- Service NSSM ---
     $ServiceName = $instance.service_name
     $StartScript = Join-Path $ROOT "fs25\start_fs25.ps1"
 
@@ -54,22 +60,18 @@ foreach ($instance in $FS25.instances) {
 
     # Créer service NSSM
     Write-Host "Création service NSSM $ServiceName..."
-    & $NssmPath install $ServiceName "powershell.exe" "-ExecutionPolicy Bypass -File `"$StartScript`" -InstancePath `"$InstancePath`""
+    & $NssmPath install $ServiceName "powershell.exe" "-ExecutionPolicy Bypass -File `"$StartScript`" -InstanceName `"$($instance.name)`""
     & $NssmPath set $ServiceName AppDirectory $FS25.install_dir
     & $NssmPath set $ServiceName Start SERVICE_AUTO_START
-    #& $NssmPath set $ServiceName ObjectName $FS25.user
+    #& $NssmPath set $ServiceName ObjectName $FS25.user  # optionnel
 
-    Write-Host "Tests de push"
-
-    # Firewall pour le port de l’instance
+    # --- Firewall port ---
     Write-Host "Configuration Firewall port $($instance.port)..."
     New-NetFirewallRule -DisplayName "$ServiceName Game Port" `
         -Direction Inbound -Protocol UDP -LocalPort $instance.port `
         -Action Allow -Profile Any -ErrorAction SilentlyContinue
 
-    # Démarrer le service
+    # --- Démarrer le service ---
     Start-Service $ServiceName
     Write-Host "Service $ServiceName démarré avec succès"
 }
-
-Write-Host "Setup FS25 multi-instance terminé ✅"
