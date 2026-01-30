@@ -22,7 +22,19 @@ $InstanceName = $InstanceName.ToLower()
 
 # Instance path
 $InstancePath = Join-Path $ROOT "fs25\$InstanceName"
-if (-not (Test-Path $InstancePath)) { throw "Instance path does not exist: $InstancePath" }
+if (-not (Test-Path $InstancePath)) {
+    Write-Host "Création du dossier de l'instance : $InstancePath"
+    New-Item -ItemType Directory -Force -Path $InstancePath | Out-Null
+}
+
+# Créer les sous-dossiers nécessaires
+foreach ($sub in @("Saved","Mods","logs","Backups")) {
+    $subPath = Join-Path $InstancePath $sub
+    if (-not (Test-Path $subPath)) {
+        Write-Host "Création du dossier : $subPath"
+        New-Item -ItemType Directory -Force -Path $subPath | Out-Null
+    }
+}
 
 Write-Host "Instance path : $InstancePath"
 
