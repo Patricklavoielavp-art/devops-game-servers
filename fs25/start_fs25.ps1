@@ -8,8 +8,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$InstanceName
+    [string]$InstanceName = "Vanilla"
 )
 
 # Charger config
