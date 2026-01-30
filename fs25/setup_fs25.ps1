@@ -60,7 +60,7 @@ foreach ($instance in $FS25.instances) {
         & $NssmPath remove $ServiceName confirm
     }
 
-    Write-Host "Instane Name : $instance.name"
+    Write-Host "Instane Name : $instance.["name"]"
 
     # Créer service NSSM
     Write-Host "Création service NSSM $ServiceName..."
