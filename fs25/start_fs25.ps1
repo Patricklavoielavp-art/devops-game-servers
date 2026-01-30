@@ -21,7 +21,7 @@ $ROOT = "C:\devops-game-servers"
 $InstanceName = $InstanceName.ToLower()
 
 # Instance path
-$InstancePath = Join-Path $ROOT "fs25\$InstanceName"
+$InstancePath = Join-Path $ROOT "fs25\instances\$InstanceName"
 if (-not (Test-Path $InstancePath)) {
     Write-Host "Création du dossier de l'instance : $InstancePath"
     New-Item -ItemType Directory -Force -Path $InstancePath | Out-Null
