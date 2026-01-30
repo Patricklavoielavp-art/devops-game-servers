@@ -19,6 +19,7 @@ Import-Module powershell-yaml -ErrorAction Stop
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 $FS25 = $Config.gameservers.fs25
 
+$InstancePath = Join-Path $FS25.install_dir $Instance.name
 $InstanceName = Split-Path $InstancePath -Leaf
 $InstanceCfg = $FS25.instances | Where-Object { $_.name -eq $InstanceName }
 if (-not $InstanceCfg) { Write-Host "Erreur : instance '$InstanceName' non trouvée" -ForegroundColor Red; exit 1 }
@@ -96,7 +97,7 @@ try {
         Monitor-Ressources
         Start-Sleep -Seconds 60
         if (-not (Get-Process -Id $Process.Id -ErrorAction SilentlyContinue)) { Log "FS25 arrêté"; exit 1 }
-        
+
     }
 } catch {
     Log "CRASH FS25 : $_"
