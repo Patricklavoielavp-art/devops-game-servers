@@ -6,9 +6,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# -------------------------------------------------
 # Charger config
-# -------------------------------------------------
 $ROOT = "C:\devops-game-servers"
 $ConfigPath = Join-Path $ROOT "config.yaml"
 
@@ -18,9 +16,7 @@ $FS25 = $Config.gameservers.fs25
 
 $InstancesDir = Join-Path $ROOT "fs25\instances"
 
-# -------------------------------------------------
 # Vérifier NSSM
-# -------------------------------------------------
 $NssmPath = "C:\nssm\nssm.exe"
 if (-not (Test-Path $NssmPath)) {
     Write-Host "Installation NSSM..."
@@ -32,14 +28,10 @@ if (-not (Test-Path $NssmPath)) {
     Remove-Item $zip
 }
 
-# -------------------------------------------------
 # Créer dossier Instances
-# -------------------------------------------------
 if (-not (Test-Path $InstancesDir)) { New-Item -ItemType Directory -Force -Path $InstancesDir | Out-Null }
 
-# -------------------------------------------------
 # Créer services pour chaque instance
-# -------------------------------------------------
 foreach ($instance in $FS25.instances) {
 
     $InstancePath = Join-Path $InstancesDir $instance.name

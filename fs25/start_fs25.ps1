@@ -24,7 +24,7 @@ $InstanceCfg = $FS25.instances | Where-Object { $_.name -eq $InstanceName }
 if (-not $InstanceCfg) { Write-Host "Erreur : instance '$InstanceName' non trouvée" -ForegroundColor Red; exit 1 }
 
 # Variables
-$ExePath  = Join-Path $FS25.install_dir "FS25Server.exe"
+$ExePath  = Join-Path $FS25.install_dir "DedicatedServer.exe"
 $LogDir   = Join-Path $InstancePath "logs"
 $LogFile  = Join-Path $LogDir "fs25.log"
 $SavedDir = Join-Path $InstancePath "Saved"
@@ -75,7 +75,6 @@ function Run-Backup {
         $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
         $ZipPath = Join-Path $BackupDst "FS25_$Stamp.zip"
         Compress-Archive -Path "$SavedDir\*" -DestinationPath $ZipPath -CompressionLevel Optimal
-        # Supprimer anciens backups
         Get-ChildItem $BackupDst -Filter "FS25_*.zip" | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$RetentionDays) } | Remove-Item -Force
         Send-Discord "💾 Backup OK : FS25_$Stamp.zip"
     } catch { Log "Erreur backup : $_"; Send-Discord "❌ Backup échoué : $_" }
@@ -87,6 +86,8 @@ Start-Job -ScriptBlock { param($F) while ($true){ & $F; Start-Sleep -Seconds 360
 # Lancer FS25
 try {
     Run-Backup
+    if (-not (Test-Path $ExePath)) { Log "Erreur : DedicatedServer.exe introuvable"; exit 1 }
+
     $Process = Start-Process -FilePath $ExePath -ArgumentList $Args -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $LogFile -RedirectStandardError $LogFile
     Log "FS25 lancé (PID=$($Process.Id))"
     Send-Discord "✅ Serveur FS25 [$InstanceName] démarré"

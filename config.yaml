@@ -1,31 +1,82 @@
 gameservers:
+
+  ark:
+    enabled: true
+    os: linux
+    host: "192.168.18.13"
+    user: "steam"
+    appid: 2430930
+    install_dir: "/opt/ark"
+    service_name: "ark-server"
+    ports:
+      game: 7777
+      query: 27015
+      rcon: 27020
+    settings:
+      map: "TheIsland_WP"
+      session_name: "MyARKServer"
+      admin_password: "admin123"
+      server_password: ""
+    backup:
+      source: "/opt/ark/ShooterGame/Saved"
+      retention_days: 7
+    monitoring:
+      enabled: true
+      interval: 60
+      restart_on_fail: true
+      discord_webhook: ""
+
+  palworld:
+    enabled: true
+    os: linux
+    host: "192.168.1.10"
+    user: "steam"
+    appid: 2394010
+    install_dir: "/opt/palworld"
+    service_name: "palworld"
+    ports:
+      game: 8211
+      query: 27015
+    settings:
+      players: 32
+    backup:
+      source: "/opt/palworld/Pal/Saved"
+      retention_days: 1
+    monitoring:
+      enabled: true
+      interval: 60
+      restart_on_fail: true
+      discord_webhook: ""
+
   fs25:
     enabled: true
-    install_dir: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Farming Simulator 25"
+    os: windows
+    host: "localhost"
     user: "admin"
     credential_name: "FS25Service"
+    install_dir: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Farming Simulator 25"
     backup:
       retention_days: 7
+      enabled: true
     monitoring:
       enabled: true
       cpu_alert: 90
       ram_alert: 85
       discord_webhook: ""
-
     instances:
       - name: "vanilla"
         service_name: "FS25-Vanilla"
         port: 10823
-        session_name: "Petit_Champ_du_Saguenay"
-        max_players: 4
+        session_name: "VanillaFarm"
+        max_players: 10
         map: "Zielonka"
-        mods: []           # pas de mods pour vanilla
-
+        mods: []
       - name: "modded"
         service_name: "FS25-Modded"
         port: 10824
-        session_name: "Champ_de_la_Devastation"
-        max_players: 5
-        map: "ModdedMap"
+        session_name: "ModdedFarm"
+        max_players: 10
+        map: "Zielonka"
         mods:
-          - "Mod_ExtraTractors"  # mettre le nom du zip de la mod / ou des mods en ajoutant des - a la suite des autres
+          - "Mod_ExtraTractors" # ajouter le nom du .zip dans le dossier /mods
+          - "Mod_RealisticWeather"
