@@ -1,5 +1,6 @@
 param(
-    [string]$InstanceName = "Vanilla"
+    [Parameter(Mandatory)]
+    [string]$InstanceName 
 )
 
 # ================================
@@ -13,6 +14,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+
+$InstanceName = $InstanceName.ToLower()
+
 # --- Configuration ---
 $ROOT = "C:\devops-game-servers"
 $ConfigPath = Join-Path $ROOT "config.yaml"
@@ -23,7 +27,7 @@ $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 $FS25 = $Config.gameservers.fs25
 
 # --- Instance Paths ---
-$InstancePath = Join-Path $FS25.install_dir $InstanceName
+$InstancePath = Join-Path $ROOT "fs25\$InstanceName"
 Write-Host "Instance path : $InstancePath"
 
 $InstanceCfg = $FS25.instances | Where-Object { $_.name -eq $InstanceName }
