@@ -17,8 +17,6 @@ $ErrorActionPreference = "Stop"
 $ROOT = "C:\devops-game-servers"
 $ConfigPath = Join-Path $ROOT "config.yaml"
 
-# Assurez-vous d'avoir powershell-yaml installé
-# Install-Module powershell-yaml
 Import-Module powershell-yaml -ErrorAction Stop
 
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
@@ -45,6 +43,18 @@ $RetentionDays = $FS25.backup.retention_days
 # --- Préparer dossiers ---
 foreach ($d in @($LogDir, $SavedDir, $ModsDir, $BackupDst)) {
     if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
+}
+
+# --- Copier mods si existants ---
+if ($InstanceCfg.mods -and $InstanceCfg.mods.Count -gt 0) {
+    foreach ($mod in $InstanceCfg.mods) {
+        $SrcMod = Join-Path $FS25.install_dir "Mods\$mod"
+        $DstMod = Join-Path $ModsDir $mod
+        if (-not (Test-Path $DstMod) -and (Test-Path $SrcMod)) {
+            Write-Host "Copie du mod $mod..."
+            Copy-Item $SrcMod -Recurse -Force -Destination $DstMod
+        }
+    }
 }
 
 # --- Construire arguments ---
@@ -101,11 +111,9 @@ Start-Job -ScriptBlock { param($F) while ($true){ & $F; Start-Sleep -Seconds 360
 try {
     if (-not (Test-Path $ExePath)) { Log "Erreur : DedicatedServer.exe introuvable"; exit 1 }
 
-    $StdOutFile = Join-Path $LogDir "fs25_output.log"
-    $StdErrFile = Join-Path $LogDir "fs25_error.log"
-
-    $Process = Start-Process -FilePath $ExePath -ArgumentList $Args -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $StdOutFile -RedirectStandardError $StdErrFile
-
+    # Rediriger stderr vers stdout pour éviter l'erreur précédente
+    $ArgsWithRedir = "$Args 2>&1"
+    $Process = Start-Process -FilePath $ExePath -ArgumentList $ArgsWithRedir -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $LogFile
     Log "FS25 lancé (PID=$($Process.Id))"
 
     while ($true) {
