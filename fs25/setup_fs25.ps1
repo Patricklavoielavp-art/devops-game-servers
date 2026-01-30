@@ -12,12 +12,14 @@ $ErrorActionPreference = "Stop"
 $ROOT = "C:\devops-game-servers"
 $ConfigPath = Join-Path $ROOT "config.yaml"
 $NssmPath = "C:\Path\To\nssm.exe"  # <-- mettre le chemin correct vers NSSM
-$InstancesDir = $FS25.install_dir
+
 
 # --- Charger config YAML ---
 Import-Module powershell-yaml -ErrorAction Stop
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 $FS25 = $Config.gameservers.fs25
+
+$InstancesDir = $FS25.install_dir
 
 # --- Créer services pour chaque instance ---
 foreach ($instance in $FS25.instances) {
