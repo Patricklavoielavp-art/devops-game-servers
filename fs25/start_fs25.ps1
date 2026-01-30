@@ -40,6 +40,9 @@ $ModsDir  = Join-Path $InstancePath "Mods"
 $BackupDst= Join-Path $InstancePath "Backups"
 $RetentionDays = $FS25.backup.retention_days
 
+$ServerLog = Join-Path $LogDir "fs25_server.log"
+$WrapperLog = Join-Path $LogDir "fs25_wrapper.log"
+
 # --- Préparer dossiers ---
 foreach ($d in @($LogDir, $SavedDir, $ModsDir, $BackupDst)) {
     if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
@@ -72,14 +75,9 @@ $Args += " -log"
 function Log {
     param([string]$M)
     $Time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    "$Time - $M" | Tee-Object -FilePath $LogFile
+    "$Time - $M" | Out-File -FilePath $WrapperLog -Append -Encoding utf8
 }
 
-# --- Rotation logs ---
-if (Test-Path $LogFile) {
-    Move-Item $LogFile (Join-Path $LogDir "fs25_$(Get-Date -Format yyyyMMdd_HHmmss).log") -Force
-}
-New-Item -ItemType File -Force -Path $LogFile | Out-Null
 
 # --- Backup ---
 function Run-Backup {
@@ -113,7 +111,7 @@ try {
 
     # Rediriger stderr vers stdout pour éviter l'erreur précédente
     $ArgsWithRedir = "$Args 2>&1"
-    $Process = Start-Process -FilePath $ExePath -ArgumentList $ArgsWithRedir -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $LogFile
+    $Process = Start-Process -FilePath $ExePath -ArgumentList $ArgsWithRedir -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $ServerLog -RedirectStandardOError $ServerLog
     Log "FS25 lancé (PID=$($Process.Id))"
 
     while ($true) {
