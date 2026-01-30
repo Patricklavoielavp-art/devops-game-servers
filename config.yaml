@@ -78,5 +78,4 @@ gameservers:
         max_players: 10
         map: "Zielonka"
         mods:
-          - "Mod_ExtraTractors" # ajouter le nom du .zip dans le dossier /mods
-          - "Mod_RealisticWeather"
+          - [] # ajouter le nom du .zip dans le dossier /mods

@@ -96,6 +96,7 @@ try {
         Monitor-Ressources
         Start-Sleep -Seconds 60
         if (-not (Get-Process -Id $Process.Id -ErrorAction SilentlyContinue)) { Log "FS25 arrêté"; exit 1 }
+        
     }
 } catch {
     Log "CRASH FS25 : $_"

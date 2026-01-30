@@ -59,6 +59,8 @@ foreach ($instance in $FS25.instances) {
     & $NssmPath set $ServiceName Start SERVICE_AUTO_START
     #& $NssmPath set $ServiceName ObjectName $FS25.user
 
+    Write-Host "Tests de push"
+
     # Firewall pour le port de l’instance
     Write-Host "Configuration Firewall port $($instance.port)..."
     New-NetFirewallRule -DisplayName "$ServiceName Game Port" `
