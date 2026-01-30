@@ -64,10 +64,9 @@ foreach ($instance in $FS25.instances) {
 
     # Créer service NSSM
     Write-Host "Création service NSSM $ServiceName..."
-    & $NssmPath install $ServiceName "powershell.exe" "-ExecutionPolicy Bypass -File `"$StartScript`" -InstanceName `"$($instance.name)`""
+    & $NssmPath install $ServiceName "C:\Program Files\PowerShell\7\pwsh.exe" "-ExecutionPolicy Bypass -File `"$StartScript`" -InstanceName `"$($instance.name)`""
     & $NssmPath set $ServiceName AppDirectory $FS25.install_dir
     & $NssmPath set $ServiceName Start SERVICE_AUTO_START
-    #& $NssmPath set $ServiceName ObjectName $FS25.user  # optionnel
 
     # --- Firewall port ---
     Write-Host "Configuration Firewall port $($instance.port)..."
