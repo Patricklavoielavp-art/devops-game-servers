@@ -24,6 +24,7 @@ $InstanceName = Split-Path $InstancePath -Leaf
 $InstanceCfg = $FS25.instances | Where-Object { $_.name -eq $InstanceName }
 if (-not $InstanceCfg) { Write-Host "Erreur : instance '$InstanceName' non trouvée" -ForegroundColor Red; exit 1 }
 
+
 # Variables
 $ExePath  = Join-Path $FS25.install_dir "DedicatedServer.exe"
 $LogDir   = Join-Path $InstancePath "logs"
