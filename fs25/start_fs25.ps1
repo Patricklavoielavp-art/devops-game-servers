@@ -87,8 +87,7 @@ $Process = Start-Process -FilePath $ExePath `
     -ArgumentList $Args `
     -WorkingDirectory $FS25.install_dir `
     -NoNewWindow -PassThru `
-    -RedirectStandardOutput $ServerLog `
-    -RedirectStandardError  $ServerLog
+    -RedirectStandardOutput $ServerLog 
 
 Log "FS25 lancé (PID=$($Process.Id))"
 
