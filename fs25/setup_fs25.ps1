@@ -60,6 +60,8 @@ foreach ($instance in $FS25.instances) {
         & $NssmPath remove $ServiceName confirm
     }
 
+    Write-Host "Instane Name : $instance.name"
+
     # Créer service NSSM
     Write-Host "Création service NSSM $ServiceName..."
     & $NssmPath install $ServiceName "powershell.exe" "-ExecutionPolicy Bypass -File `"$StartScript`" -InstanceName `"$($instance.name)`""
