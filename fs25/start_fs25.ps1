@@ -20,6 +20,7 @@ $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 $FS25 = $Config.gameservers.fs25
 
 $InstancePath = Join-Path $FS25.install_dir $Instance.name
+Write-Host "Instance path : $InstancePath "
 $InstanceName = Split-Path $InstancePath -Leaf
 $InstanceCfg = $FS25.instances | Where-Object { $_.name -eq $InstanceName }
 if (-not $InstanceCfg) { Write-Host "Erreur : instance '$InstanceName' non trouvée" -ForegroundColor Red; exit 1 }
