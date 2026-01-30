@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 # --- Chemins et outils ---
 $ROOT = "C:\devops-game-servers"
 $ConfigPath = Join-Path $ROOT "config.yaml"
-$NssmPath = "C:\Path\To\nssm.exe"  # <-- mettre le chemin correct vers NSSM
+$NssmPath = "C:\nssm\nssm.exe"  # <-- mettre le chemin correct vers NSSM
 
 
 # --- Charger config YAML ---
