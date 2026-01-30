@@ -1,137 +1,81 @@
 # setup_fs25.ps1
-# Setup et lancement FS25 Server automatique
+# Setup FS25 Dedicated Server multi-instance (NSSM + Firewall)
 # Author: Patrick
 # PS7 compatible, Windows Server 2022
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-param(
-    [switch]$SkipInstall
-)
+# -------------------------------------------------
+# Charger config
+# -------------------------------------------------
+$ROOT = "C:\devops-game-servers"
+$ConfigPath = Join-Path $ROOT "config.yaml"
 
-# --- ROOT = dossier racine du repo ---
-$ScriptPath = $MyInvocation.MyCommand.Path
-$ROOT = Split-Path -Parent (Split-Path -Parent $ScriptPath)
-Write-Host "ROOT defini sur $ROOT"
-
-# --- Chemins absolus ---
-$Fs25Dir      = Join-Path $ROOT "fs25"
-$ConfigPath   = Join-Path $ROOT "config.yaml"
-$StartScript  = Join-Path $Fs25Dir "start_fs25.ps1"
-$SteamCmdPath = "C:\steamcmd\steamcmd.exe"
-$NssmPath     = "C:\nssm\nssm.exe"
-
-# --- Verification config.yaml ---
-if (-not (Test-Path $ConfigPath)) {
-    Write-Host "Erreur: config.yaml introuvable a $ConfigPath" -ForegroundColor Red
-    exit 1
-}
-
-# --- Charger YAML ---
 Import-Module powershell-yaml -ErrorAction Stop
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+$FS25 = $Config.gameservers.fs25
 
-$InstallDir  = $Config.gameservers.fs25.install_dir
-$ServiceName = $Config.gameservers.fs25.service_name
-$AppID       = $Config.gameservers.fs25.appid
-$User        = $Config.gameservers.fs25.user
-$BackupDir   = $Config.gameservers.fs25.backup.source
+$InstancesDir = Join-Path $ROOT "fs25\instances"
 
-# --- Steam login depuis YAML ---
-$SteamUser  = $Config.gameservers.fs25.steam.username
-$SteamPass  = $Config.gameservers.fs25.steam.password
-$SteamGuard = $Config.gameservers.fs25.steam.steam_guard_code
-
-Write-Host "FS25 install dir: $InstallDir"
-Write-Host "Service name: $ServiceName"
-
-# --- Verification SteamCMD ---
-if (-not (Test-Path $SteamCmdPath)) {
-    Write-Host "SteamCMD non present, telechargement..."
-    New-Item -ItemType Directory -Force -Path "C:\steamcmd" | Out-Null
-    Invoke-WebRequest -Uri "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" -OutFile "C:\steamcmd\steamcmd.zip"
-    Expand-Archive -Path "C:\steamcmd\steamcmd.zip" -DestinationPath "C:\steamcmd" -Force
-    Remove-Item "C:\steamcmd\steamcmd.zip"
-    Write-Host "SteamCMD installe."
-}
-
-# --- Verification NSSM ---
+# -------------------------------------------------
+# Vérifier NSSM
+# -------------------------------------------------
+$NssmPath = "C:\nssm\nssm.exe"
 if (-not (Test-Path $NssmPath)) {
-    Write-Host "NSSM non present, telechargement..."
+    Write-Host "Installation NSSM..."
     New-Item -ItemType Directory -Force -Path "C:\nssm" | Out-Null
-    $nssmZip = "C:\nssm\nssm.zip"
-    Invoke-WebRequest -Uri "https://nssm.cc/release/nssm-2.24.zip" -OutFile $nssmZip
-    Expand-Archive -Path $nssmZip -DestinationPath "C:\nssm" -Force
-    Remove-Item $nssmZip
+    $zip = "C:\nssm\nssm.zip"
+    Invoke-WebRequest "https://nssm.cc/release/nssm-2.24.zip" -OutFile $zip
+    Expand-Archive $zip "C:\nssm" -Force
     Copy-Item "C:\nssm\win64\nssm.exe" $NssmPath -Force
-    Write-Host "NSSM installe."
+    Remove-Item $zip
 }
 
-# --- Creation des dossiers ---
-Write-Host "Creation des dossiers..."
-New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-New-Item -ItemType Directory -Force -Path $BackupDir | Out-Null
-Write-Host "Dossiers crees."
+# -------------------------------------------------
+# Créer dossier Instances
+# -------------------------------------------------
+if (-not (Test-Path $InstancesDir)) { New-Item -ItemType Directory -Force -Path $InstancesDir | Out-Null }
 
-# --- Installation FS25 si manquant et SkipInstall non actif ---
-if (-not $SkipInstall) {
-    if (-not (Test-Path (Join-Path $InstallDir "ShooterGame"))) {
-        Write-Host "FS25 non installe, lancement installation via SteamCMD..."
+# -------------------------------------------------
+# Créer services pour chaque instance
+# -------------------------------------------------
+foreach ($instance in $FS25.instances) {
 
-        # Construire script pour +runscript
-        $loginCmd = "$SteamUser $SteamPass"
-        if ($SteamGuard -ne "") { $loginCmd += " $SteamGuard" }
+    $InstancePath = Join-Path $InstancesDir $instance.name
 
-        $steamScript = @"
-force_install_dir $InstallDir
-login $loginCmd
-app_update $AppID validate
-quit
-"@
-
-        $TempFile = "$env:TEMP\fs25_steamcmd.txt"
-        $steamScript | Set-Content $TempFile -Force
-
-        # Lancer SteamCMD et capturer la sortie
-        $proc = Start-Process -FilePath $SteamCmdPath -ArgumentList "+runscript `"$TempFile`"" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:TEMP\fs25_steamcmd_out.txt" -RedirectStandardError "$env:TEMP\fs25_steamcmd_err.txt"
-
-        Remove-Item $TempFile
-
-        if (Test-Path (Join-Path $InstallDir "ShooterGame")) {
-            Write-Host "FS25 installe avec succes."
-        } else {
-            Write-Host "Erreur: FS25 n'a pas pu etre installe. Verifiez que votre compte Steam a acces au jeu." -ForegroundColor Red
-            Write-Host "Voir les logs SteamCMD dans $env:TEMP\fs25_steamcmd_out.txt et $env:TEMP\fs25_steamcmd_err.txt"
-            exit 1
-        }
-    } else {
-        Write-Host "FS25 deja installe, installation ignoree."
+    # Créer dossiers instance
+    foreach ($d in @("Saved","Mods","logs","Backups")) {
+        $Path = Join-Path $InstancePath $d
+        if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
     }
-} else {
-    Write-Host "SkipInstall actif: installation FS25 ignoree."
+
+    $ServiceName = $instance.service_name
+    $StartScript = Join-Path $ROOT "fs25\start_fs25.ps1"
+
+    # Supprimer service existant
+    if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
+        Write-Host "Suppression service existant $ServiceName..."
+        Stop-Service $ServiceName -Force -ErrorAction SilentlyContinue
+        & $NssmPath remove $ServiceName confirm
+    }
+
+    # Créer service NSSM
+    Write-Host "Création service NSSM $ServiceName..."
+    & $NssmPath install $ServiceName "powershell.exe" "-ExecutionPolicy Bypass -File `"$StartScript`" -InstancePath `"$InstancePath`""
+    & $NssmPath set $ServiceName AppDirectory $FS25.install_dir
+    & $NssmPath set $ServiceName Start SERVICE_AUTO_START
+    & $NssmPath set $ServiceName ObjectName $FS25.user
+
+    # Firewall pour le port de l’instance
+    Write-Host "Configuration Firewall port $($instance.port)..."
+    New-NetFirewallRule -DisplayName "$ServiceName Game Port" `
+        -Direction Inbound -Protocol UDP -LocalPort $instance.port `
+        -Action Allow -Profile Any -ErrorAction SilentlyContinue
+
+    # Démarrer le service
+    Start-Service $ServiceName
+    Write-Host "Service $ServiceName démarré avec succès"
 }
 
-# --- Creation / recreation service FS25 ---
-if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
-    Write-Host "Service $ServiceName existe deja, suppression..."
-    Stop-Service $ServiceName -Force -ErrorAction SilentlyContinue
-    & $NssmPath remove $ServiceName confirm
-    Write-Host "Service supprime."
-}
-
-Write-Host "Creation service $ServiceName..."
-& $NssmPath install $ServiceName $StartScript
-Write-Host "Service cree."
-
-# --- Demarrage service ---
-try {
-    Write-Host "Demarrage service $ServiceName..."
-    Start-Service -Name $ServiceName
-    Write-Host "Service demarre avec succes."
-} catch {
-    Write-Host "Erreur: impossible de demarrer le service $ServiceName." -ForegroundColor Red
-    Write-Host $_
-}
-
-Write-Host "Setup FS25 termine."
+Write-Host "Setup FS25 multi-instance terminé ✅"

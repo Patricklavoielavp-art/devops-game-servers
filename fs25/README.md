@@ -1,181 +1,124 @@
-## 📘 docs/fs25.md
-Farming Simulator 25 — Documentation du module serveur (Windows)
+README.md
+# Farming Simulator 25 – Dedicated Server (Windows)
 
-# 🚜 1. Présentation
-Ce module gère entièrement un serveur Farming Simulator 25 Dedicated Server sous Windows, via une architecture automatisée, modulaire et pilotée par config.yaml.
-Il inclut :
-- installation via SteamCMD
-- mise à jour automatisée
-- sauvegardes avec rotation
-- monitoring (auto‑heal + port check)
-- service Windows via NSSM
-- démarrage propre
-- orchestration complète via setup_fs25.ps1
-- intégration au CLI global Windows (cli.ps1)
+Setup professionnel d’un serveur dédié **Farming Simulator 25**
+sur **Windows Server 2022**, avec :
 
-# 🧩 2. Structure du module FS25
-fs25/
-├── install.ps1
-├── update.ps1
-├── backup.ps1
-├── monitor.ps1
-├── start_fs25.ps1
-└── setup_fs25.ps1
+- Steam (installation officielle)
+- NSSM (service Windows)
+- PowerShell 7
+- Connexion joueur depuis un PC distant (même compte Steam)
+
+---
+
+## 🧱 Architecture
 
 
-Chaque script est indépendant, modulaire et 100 % YAML‑driven.
 
-# ⚙️ 3. Configuration (config.yaml)
-Exemple de configuration FS25 :
+C:\devops-game-servers
+│
+├─ config.yaml
+├─ setup_fs25.ps1
+│
+├─ fs25
+│ └─ start_fs25.ps1
+│
+└─ logs
+└─ fs25
+
+
+---
+
+## 🎮 Principe de fonctionnement
+
+- FS25 est installé **via Steam**
+- Le serveur est lancé avec `-server`
+- NSSM gère le service Windows
+- Le service tourne sous **le même user Windows que Steam**
+- Le joueur se connecte depuis **un autre PC** avec le **même compte Steam**
+
+---
+
+## 🖥️ Prérequis
+
+### Serveur
+- Windows Server 2022
+- Steam installé
+- FS25 installé :
+
+
+C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25
+
+
+### Client joueur
+- PC personnel
+- Steam
+- Même compte Steam
+- FS25 installé
+
+---
+
+## ⚙️ Configuration
+
+### config.yaml (exemple)
+
+```yaml
 gameservers:
   fs25:
-    enabled: true
-    os: windows
-    user: "fs25"
-    install_dir: "C:\\FS25"
     service_name: "FS25"
-    appid: 2430930
-    ports:
-      game: 10823
-    backup:
-      source: "C:\\FS25\\savegame"
-      retention_days: 7
-    monitoring:
-      enabled: true
-      interval: 60
-      restart_on_fail: true
-      discord_webhook: ""
+
+🚀 Installation
+1️⃣ Lancer le setup
+powershell -ExecutionPolicy Bypass -File setup_fs25.ps1
 
 
+Le script :
 
-# 🛠️ 4. Scripts du module
-4.1 install.ps1 — Installation complète
-Fonctionnalités :
-- installation via SteamCMD (méthode officielle)
-- installation automatique de SteamCMD si absent
-- création de l’utilisateur Windows dédié
-- création des dossiers
-- installation idempotente
-- logs propres
-Commande :
-cli.ps1 install fs25
+installe NSSM
 
+crée le service
 
+configure le firewall
 
-4.2 update.ps1 — Mise à jour
-Fonctionnalités :
-- mise à jour via SteamCMD
-- validation des fichiers
-- redémarrage automatique du service Windows
-- logs professionnels
-Commande :
-cli.ps1 update fs25
+démarre le serveur
 
+🎮 Connexion joueur
 
+Depuis le PC personnel :
 
-4.3 backup.ps1 — Sauvegarde + rotation
-Fonctionnalités :
-- compression .zip
-- rotation automatique selon retention_days
-- purge des anciens backups
-- notification Discord optionnelle
-- logs propres
-Commande :
-cli.ps1 backup fs25
+Lancer FS25
 
+Multijoueur
 
+Connexion directe
 
-4.4 monitor.ps1 — Monitoring + auto‑heal
-Fonctionnalités :
-- vérification du service Windows
-- vérification du port du serveur
-- redémarrage automatique en cas de crash
-- alerte Discord optionnelle
-- logs professionnels
-Commande :
-cli.ps1 monitor fs25
+Entrer l’IP du serveur
 
+🔄 Mise à jour FS25
 
+Stopper le service Windows
 
-4.5 start_fs25.ps1 — Démarrage du serveur
-Fonctionnalités :
-- construction de la commande FS25
-- lecture des ports via YAML
-- lancement propre via Start-Process
-- parfait pour un service Windows (NSSM)
-Commande :
-cli.ps1 start fs25
+Lancer Steam sur le serveur
 
+Mettre à jour FS25
 
+Redémarrer le service
 
-4.6 setup_fs25.ps1 — Orchestration complète
-Fonctionnalités :
-- installation
-- mise à jour
-- installation de NSSM
-- création du service Windows
-- démarrage du service
-- healthcheck du port
-- logs professionnels
-Commande :
-cli.ps1 setup fs25
+✅ Bonnes pratiques
 
+✔ Un seul client Steam connecté
+✔ Le serveur ne lance pas Steam UI
+✔ Le service ne tourne PAS sous SYSTEM
+✔ Logs persistants dans /logs/fs25
 
+🔜 Roadmap possible
 
-# 🖥️ 5. Service Windows (NSSM)
-Généré automatiquement via setup_fs25.ps1.
-Exemple :
-Service Name: FS25
-Executable: powershell.exe
-Arguments: -ExecutionPolicy Bypass -File "C:\FS25\start_fs25.ps1"
-Startup: Automatic
-Working Directory: C:\FS25
-Restart: Always
+Backup auto des saves
 
+Multi-instances FS25
 
-
-# 🔄 6. Flux opérationnel FS25
-Installation complète
-setup → install → update → install NSSM → create service → start → healthcheck
-
-
-Mise à jour
-update → restart service → healthcheck
-
-
-Backup
-backup → compression → rotation → purge → Discord
-
+Rotation des logs
 
 Monitoring
-monitor → check service → check port → restart on fail → Discord
 
-
-
-# 🛡️ 7. Sécurité
-- utilisateur Windows dédié (fs25)
-- service isolé via NSSM
-- ports configurables
-- scripts idempotents
-- pas de credentials en clair
-
-# 📦 8. Intégration CLI
-cli.ps1 install fs25
-cli.ps1 update fs25
-cli.ps1 backup fs25
-cli.ps1 monitor fs25
-cli.ps1 start fs25
-cli.ps1 setup fs25
-
-
-
-# 🧑‍💻 9. Objectif du module
-Ce module démontre :
-- maîtrise de PowerShell avancé
-- automatisation SteamCMD Windows
-- gestion de services via NSSM
-- monitoring et auto‑heal Windows
-- architecture modulaire
-- documentation professionnelle
-
-
+Auteur : Patrick
