@@ -101,7 +101,11 @@ Start-Job -ScriptBlock { param($F) while ($true){ & $F; Start-Sleep -Seconds 360
 try {
     if (-not (Test-Path $ExePath)) { Log "Erreur : DedicatedServer.exe introuvable"; exit 1 }
 
-    $Process = Start-Process -FilePath $ExePath -ArgumentList $Args -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $LogFile -RedirectStandardError $LogFile
+    $StdOutFile = Join-Path $LogDir "fs25_output.log"
+    $StdErrFile = Join-Path $LogDir "fs25_error.log"
+
+    $Process = Start-Process -FilePath $ExePath -ArgumentList $Args -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $StdOutFile -RedirectStandardError $StdErrFile
+
     Log "FS25 lancé (PID=$($Process.Id))"
 
     while ($true) {
