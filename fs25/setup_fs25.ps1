@@ -1,80 +1,58 @@
-# ================================
-# setup_fs25.ps1
-# Création des instances FS25 Vanilla/Modded
-# Crée dossiers, services NSSM et firewall
-# Author: Patrick
-# ================================
+<#
+.SYNOPSIS
+    Crée les dossiers FS25, services NSSM et firewall pour chaque instance
+#>
 
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# --- Chemins et outils ---
 $ROOT = "C:\devops-game-servers"
-$ConfigPath = Join-Path $ROOT "config.yaml"
-$NssmPath = "C:\nssm\nssm.exe"  # <-- mettre le chemin correct vers NSSM
+$Fs25Root = Join-Path $ROOT "fs25"
+$NssmPath = "C:\nssm\nssm.exe"
 
-
-# --- Charger config YAML ---
-Import-Module powershell-yaml -ErrorAction Stop
-$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
+# YAML / config
+Import-Module powershell-yaml
+$Config = Get-Content "$ROOT\config.yaml" -Raw | ConvertFrom-Yaml
 $FS25 = $Config.gameservers.fs25
 
-$InstancesDir = $FS25.install_dir
+# Créer dossier fs25 si absent
+if (-not (Test-Path $Fs25Root)) { New-Item -ItemType Directory -Force -Path $Fs25Root | Out-Null }
 
-# --- Créer services pour chaque instance ---
 foreach ($instance in $FS25.instances) {
+    $InstanceName = $instance.name.ToLower()
+    $InstancePath = Join-Path $Fs25Root $InstanceName
 
-    $InstancePath = Join-Path $FS25.install_dir $instance.name
-    Write-Host "Création de l'instance : $InstancePath"
-
-    # --- Créer dossiers de l'instance ---
+    # Créer dossiers instance
     foreach ($d in @("Saved","Mods","logs","Backups")) {
         $Path = Join-Path $InstancePath $d
-        if (-not (Test-Path $Path)) {
-            New-Item -ItemType Directory -Force -Path $Path | Out-Null
-            Write-Host "Dossier créé : $Path"
-        }
+        if (-not (Test-Path $Path)) { New-Item -ItemType Directory -Force -Path $Path | Out-Null }
     }
 
-    # --- Créer sous-dossiers pour chaque mod si existant ---
-    if ($instance.mods -and $instance.mods.Count -gt 0) {
-        foreach ($mod in $instance.mods) {
-            if ($mod) { # Ignore les entrées vides
-                $ModPath = Join-Path $InstancePath "Mods\$mod"
-                if (-not (Test-Path $ModPath)) {
-                    New-Item -ItemType Directory -Force -Path $ModPath | Out-Null
-                    Write-Host "Sous-dossier mod créé : $ModPath"
-                }
-            }
-        }
-    }
-
-    # --- Service NSSM ---
+    # NSSM service
     $ServiceName = $instance.service_name
     $StartScript = Join-Path $ROOT "fs25\start_fs25.ps1"
 
-    # Supprimer service existant
+    # Supprimer ancien service si existant
     if (Get-Service -Name $ServiceName -ErrorAction SilentlyContinue) {
         Write-Host "Suppression service existant $ServiceName..."
         Stop-Service $ServiceName -Force -ErrorAction SilentlyContinue
         & $NssmPath remove $ServiceName confirm
     }
 
-    Write-Host "Instane Name : $instance.["name"]"
-
-    # Créer service NSSM
+    # Installer le service
     Write-Host "Création service NSSM $ServiceName..."
-    & $NssmPath install $ServiceName "C:\Program Files\PowerShell\7\pwsh.exe" "-ExecutionPolicy Bypass -File `"$StartScript`" -InstanceName `"$($instance.name)`""
-    & $NssmPath set $ServiceName AppDirectory $FS25.install_dir
+    & $NssmPath install $ServiceName `
+        "C:\Program Files\PowerShell\7\pwsh.exe" `
+        "-ExecutionPolicy Bypass -File `"$StartScript`" -InstanceName `"$InstanceName`""
+
+    & $NssmPath set $ServiceName AppDirectory $Fs25Root
     & $NssmPath set $ServiceName Start SERVICE_AUTO_START
 
-    # --- Firewall port ---
-    Write-Host "Configuration Firewall port $($instance.port)..."
+    # Firewall
     New-NetFirewallRule -DisplayName "$ServiceName Game Port" `
         -Direction Inbound -Protocol UDP -LocalPort $instance.port `
         -Action Allow -Profile Any -ErrorAction SilentlyContinue
 
-    # --- Démarrer le service ---
+    # Démarrer service
     Start-Service $ServiceName
-    Write-Host "Service $ServiceName démarré avec succès"
+    Write-Host "Service $ServiceName démarré"
 }

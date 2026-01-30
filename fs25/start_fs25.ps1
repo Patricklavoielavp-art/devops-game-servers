@@ -1,132 +1,99 @@
+<#
+.SYNOPSIS
+    Lancer un serveur FS25 pour une instance donnée.
+
+.PARAMETER InstanceName
+    Nom de l'instance à lancer (obligatoire).
+
+#>
+
 param(
-    [Parameter(Mandatory)]
-    [string]$InstanceName 
+    [Parameter(Mandatory=$true)]
+    [string]$InstanceName
 )
 
-# ================================
-# FS25 Multi-instance Starter Script
-# Vanilla ou Modded
-# Backup, Logs, Monitoring CPU/RAM
-# Compatible PS5.1 et PS7
-# Author: Patrick
-# ================================
-
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# Base paths
+$ROOT = "C:\devops-game-servers"
 
+# Toujours en minuscules pour tolérer la casse
 $InstanceName = $InstanceName.ToLower()
 
-# --- Configuration ---
-$ROOT = "C:\devops-game-servers"
-$ConfigPath = Join-Path $ROOT "config.yaml"
+# Instance path
+$InstancePath = Join-Path $ROOT "fs25\$InstanceName"
+if (-not (Test-Path $InstancePath)) { throw "Instance path does not exist: $InstancePath" }
 
+Write-Host "Instance path : $InstancePath"
+
+# Charger config YAML
 Import-Module powershell-yaml -ErrorAction Stop
-
+$ConfigPath = Join-Path $ROOT "config.yaml"
 $Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
 $FS25 = $Config.gameservers.fs25
 
-# --- Instance Paths ---
-$InstancePath = Join-Path $ROOT "fs25\$InstanceName"
-Write-Host "Instance path : $InstancePath"
+# Récupérer configuration de l'instance
+$InstanceCfg = $FS25.instances | Where-Object { $_.name.ToLower() -eq $InstanceName }
+if (-not $InstanceCfg) { throw "Instance '$InstanceName' not found in config" }
 
-$InstanceCfg = $FS25.instances | Where-Object { $_.name -eq $InstanceName }
-if (-not $InstanceCfg) {
-    Write-Host "Erreur : instance '$InstanceName' non trouvée" -ForegroundColor Red
-    exit 1
-}
-
+# Variables
 $ExePath  = Join-Path $FS25.install_dir "DedicatedServer.exe"
 $LogDir   = Join-Path $InstancePath "logs"
-$LogFile  = Join-Path $LogDir "fs25.log"
+$ServerLog = Join-Path $LogDir "fs25_server.log"
+$WrapperLog = Join-Path $LogDir "fs25_wrapper.log"
 $SavedDir = Join-Path $InstancePath "Saved"
 $ModsDir  = Join-Path $InstancePath "Mods"
 $BackupDst= Join-Path $InstancePath "Backups"
 $RetentionDays = $FS25.backup.retention_days
 
-$ServerLog = Join-Path $LogDir "fs25_server.log"
-$WrapperLog = Join-Path $LogDir "fs25_wrapper.log"
-
-# --- Préparer dossiers ---
+# Préparer dossiers
 foreach ($d in @($LogDir, $SavedDir, $ModsDir, $BackupDst)) {
     if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
 }
 
-# --- Copier mods si existants ---
-if ($InstanceCfg.mods -and $InstanceCfg.mods.Count -gt 0) {
-    foreach ($mod in $InstanceCfg.mods) {
-        $SrcMod = Join-Path $FS25.install_dir "Mods\$mod"
-        $DstMod = Join-Path $ModsDir $mod
-        if (-not (Test-Path $DstMod) -and (Test-Path $SrcMod)) {
-            Write-Host "Copie du mod $mod..."
-            Copy-Item $SrcMod -Recurse -Force -Destination $DstMod
-        }
-    }
-}
-
-# --- Construire arguments ---
+# Construire arguments du serveur
 $Args = "$($InstanceCfg.map)?listen?SessionName=$($InstanceCfg.session_name)?MaxPlayers=$($InstanceCfg.max_players)"
-
-# Ajouter mods seulement s'ils existent
-if ($InstanceCfg.mods -and $InstanceCfg.mods.Count -gt 0) {
+if ($InstanceCfg.mods.Count -gt 0 -and $InstanceCfg.mods[0] -ne $null) {
     $ModsParam = $InstanceCfg.mods -join ","
     $Args += "?Mods=$ModsParam"
 }
-
 $Args += " -log"
 
-# --- Fonction log ---
-function Log {
-    param([string]$M)
-    $Time = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    "$Time - $M" | Out-File -FilePath $WrapperLog -Append -Encoding utf8
+# Fonction log wrapper
+function Log { param([string]$M)
+    "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) - $M" | Out-File -Append -FilePath $WrapperLog -Encoding UTF8
 }
 
-
-# --- Backup ---
+# Backup fonctionnel
 function Run-Backup {
     try {
         $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
         $ZipPath = Join-Path $BackupDst "FS25_$Stamp.zip"
         Compress-Archive -Path "$SavedDir\*" -DestinationPath $ZipPath -CompressionLevel Optimal
-        Get-ChildItem $BackupDst -Filter "FS25_*.zip" |
-            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$RetentionDays) } |
-            Remove-Item -Force
+        # Supprimer anciens backups
+        Get-ChildItem $BackupDst -Filter "FS25_*.zip" | Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$RetentionDays) } | Remove-Item -Force
         Log "Backup OK : FS25_$Stamp.zip"
     } catch { Log "Erreur backup : $_" }
 }
 
-# --- Monitor CPU/RAM ---
-function Monitor-Ressources {
-    try {
-        $CPU = (Get-Counter '\Processor(_Total)\% Processor Time').CounterSamples[0].CookedValue
-        $RAM = (Get-Counter '\Memory\% Committed Bytes In Use').CounterSamples[0].CookedValue
-        if ($CPU -gt $FS25.monitoring.cpu_alert) { Log "⚠️ CPU élevé : $([int]$CPU)%" }
-        if ($RAM -gt $FS25.monitoring.ram_alert) { Log "⚠️ RAM élevé : $([int]$RAM)%" }
-    } catch {}
-}
+# Rotation logs wrapper
+if (Test-Path $WrapperLog) { Move-Item $WrapperLog (Join-Path $LogDir "fs25_wrapper_$(Get-Date -Format yyyyMMdd_HHmmss).log") -Force }
+New-Item -ItemType File -Force -Path $WrapperLog | Out-Null
 
-# --- Job backup périodique ---
-Start-Job -ScriptBlock { param($F) while ($true){ & $F; Start-Sleep -Seconds 3600 } } -ArgumentList ${function:Run-Backup} | Out-Null
+# Lancer le serveur
+if (-not (Test-Path $ExePath)) { Log "Erreur : DedicatedServer.exe introuvable"; exit 1 }
 
-# --- Lancer FS25 ---
-try {
-    if (-not (Test-Path $ExePath)) { Log "Erreur : DedicatedServer.exe introuvable"; exit 1 }
+$Process = Start-Process -FilePath $ExePath `
+    -ArgumentList $Args `
+    -WorkingDirectory $FS25.install_dir `
+    -NoNewWindow -PassThru `
+    -RedirectStandardOutput $ServerLog `
+    -RedirectStandardError  $ServerLog
 
-    # Rediriger stderr vers stdout pour éviter l'erreur précédente
-    $ArgsWithRedir = "$Args 2>&1"
-    $Process = Start-Process -FilePath $ExePath -ArgumentList $ArgsWithRedir -WorkingDirectory $FS25.install_dir -NoNewWindow -PassThru -RedirectStandardOutput $ServerLog -RedirectStandardOError $ServerLog
-    Log "FS25 lancé (PID=$($Process.Id))"
+Log "FS25 lancé (PID=$($Process.Id))"
 
-    while ($true) {
-        Monitor-Ressources
-        Start-Sleep -Seconds 60
-        if (-not (Get-Process -Id $Process.Id -ErrorAction SilentlyContinue)) {
-            Log "FS25 arrêté"
-            exit 1
-        }
-    }
-} catch {
-    Log "CRASH FS25 : $_"
-    exit 1
+# Monitor boucle simple
+while ($true){
+    Start-Sleep -Seconds 60
+    if (-not (Get-Process -Id $Process.Id -ErrorAction SilentlyContinue)) { Log "FS25 arrêté"; exit 1 }
 }
