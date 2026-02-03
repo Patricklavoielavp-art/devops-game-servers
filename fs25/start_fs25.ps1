@@ -18,15 +18,17 @@ foreach ($sub in @("Saved","Mods","logs","Backups")) {
     }
 }
 
-# Chemins pour FS25
-$ExePath = "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25\dedicatedServer.exe"
+# --- Chemins FS25 ---
+$FS25Install = "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25"
+$ExePath = Join-Path $FS25Install "FS25DedicatedServer.exe"
+
 $SavedDir = Join-Path $InstancePath "Saved"
 $LogDir = Join-Path $InstancePath "logs"
 $ServerLog = Join-Path $LogDir "fs25_server.log"
 $WrapperLog = Join-Path $LogDir "fs25_wrapper.log"
 $ModsDir  = Join-Path $InstancePath "Mods"
 $BackupDst= Join-Path $InstancePath "Backups"
-$RetentionDays = 7   # nombre de jours à conserver les backups
+$RetentionDays = 7   # jours à conserver les backups
 
 # --- Fonction log wrapper ---
 function Log { param([string]$M)
@@ -56,14 +58,14 @@ $Args = "-saveDir `"$SavedDir`" -log"
 
 # --- Vérifier exe ---
 if (-not (Test-Path $ExePath)) {
-    Log "Erreur : FS25DedicatedServer.exe introuvable !"
+    Log "Erreur : FS25DedicatedServer.exe introuvable ! Chemin utilisé : $ExePath"
     exit 1
 }
 
 # --- Lancer serveur ---
 $Process = Start-Process -FilePath $ExePath `
     -ArgumentList $Args `
-    -WorkingDirectory "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25" `
+    -WorkingDirectory $FS25Install `
     -NoNewWindow -PassThru `
     -RedirectStandardOutput $ServerLog
 
