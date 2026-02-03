@@ -1,12 +1,3 @@
-<#
-.SYNOPSIS
-    Lancer un serveur FS25 pour une instance donnée.
-
-.PARAMETER InstanceName
-    Nom de l'instance à lancer (obligatoire).
-
-#>
-
 param(
     [Parameter(Mandatory=$true)]
     [string]$InstanceName
@@ -14,69 +5,35 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Base paths
+# --- Chemins de base ---
 $ROOT = "C:\devops-game-servers"
-
-# Toujours en minuscules pour tolérer la casse
 $InstanceName = $InstanceName.ToLower()
-
-# Instance path
 $InstancePath = Join-Path $ROOT "fs25\instances\$InstanceName"
-if (-not (Test-Path $InstancePath)) {
-    Write-Host "Création du dossier de l'instance : $InstancePath"
-    New-Item -ItemType Directory -Force -Path $InstancePath | Out-Null
-}
 
-# Créer les sous-dossiers nécessaires
+# Créer dossiers de l'instance si nécessaire
 foreach ($sub in @("Saved","Mods","logs","Backups")) {
     $subPath = Join-Path $InstancePath $sub
     if (-not (Test-Path $subPath)) {
-        Write-Host "Création du dossier : $subPath"
         New-Item -ItemType Directory -Force -Path $subPath | Out-Null
     }
 }
 
-Write-Host "Instance path : $InstancePath"
-
-# Charger config YAML
-Import-Module powershell-yaml -ErrorAction Stop
-$ConfigPath = Join-Path $ROOT "config.yaml"
-$Config = Get-Content $ConfigPath -Raw | ConvertFrom-Yaml
-$FS25 = $Config.gameservers.fs25
-
-# Récupérer configuration de l'instance
-$InstanceCfg = $FS25.instances | Where-Object { $_.name.ToLower() -eq $InstanceName }
-if (-not $InstanceCfg) { throw "Instance '$InstanceName' not found in config" }
-
-# Variables
-$ExePath  = Join-Path $FS25.install_dir "DedicatedServer.exe"
-$LogDir   = Join-Path $InstancePath "logs"
+# Chemins pour FS25
+$ExePath = "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25\dedicatedServer.exe"
+$SavedDir = Join-Path $InstancePath "Saved"
+$LogDir = Join-Path $InstancePath "logs"
 $ServerLog = Join-Path $LogDir "fs25_server.log"
 $WrapperLog = Join-Path $LogDir "fs25_wrapper.log"
-$SavedDir = Join-Path $InstancePath "Saved"
 $ModsDir  = Join-Path $InstancePath "Mods"
 $BackupDst= Join-Path $InstancePath "Backups"
-$RetentionDays = $FS25.backup.retention_days
+$RetentionDays = 7   # nombre de jours à conserver les backups
 
-# Préparer dossiers
-foreach ($d in @($LogDir, $SavedDir, $ModsDir, $BackupDst)) {
-    if (-not (Test-Path $d)) { New-Item -ItemType Directory -Force -Path $d | Out-Null }
-}
-
-# Construire arguments du serveur
-$Args = "$($InstanceCfg.map)?listen?SessionName=$($InstanceCfg.session_name)?MaxPlayers=$($InstanceCfg.max_players)"
-if ($InstanceCfg.mods.Count -gt 0 -and $InstanceCfg.mods[0] -ne $null) {
-    $ModsParam = $InstanceCfg.mods -join ","
-    $Args += "?Mods=$ModsParam"
-}
-$Args += " -log"
-
-# Fonction log wrapper
+# --- Fonction log wrapper ---
 function Log { param([string]$M)
     "$((Get-Date).ToString('yyyy-MM-dd HH:mm:ss')) - $M" | Out-File -Append -FilePath $WrapperLog -Encoding UTF8
 }
 
-# Backup fonctionnel
+# --- Backup automatique ---
 function Run-Backup {
     try {
         $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -88,23 +45,44 @@ function Run-Backup {
     } catch { Log "Erreur backup : $_" }
 }
 
-# Rotation logs wrapper
-if (Test-Path $WrapperLog) { Move-Item $WrapperLog (Join-Path $LogDir "fs25_wrapper_$(Get-Date -Format yyyyMMdd_HHmmss).log") -Force }
+# --- Rotation logs wrapper ---
+if (Test-Path $WrapperLog) {
+    Move-Item $WrapperLog (Join-Path $LogDir "fs25_wrapper_$(Get-Date -Format yyyyMMdd_HHmmss).log") -Force
+}
 New-Item -ItemType File -Force -Path $WrapperLog | Out-Null
 
-# Lancer le serveur
-if (-not (Test-Path $ExePath)) { Log "Erreur : DedicatedServer.exe introuvable"; exit 1 }
+# --- Arguments serveur ---
+$Args = "-saveDir `"$SavedDir`" -log"
 
+# --- Vérifier exe ---
+if (-not (Test-Path $ExePath)) {
+    Log "Erreur : FS25DedicatedServer.exe introuvable !"
+    exit 1
+}
+
+# --- Lancer serveur ---
 $Process = Start-Process -FilePath $ExePath `
     -ArgumentList $Args `
-    -WorkingDirectory $FS25.install_dir `
+    -WorkingDirectory "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25" `
     -NoNewWindow -PassThru `
-    -RedirectStandardOutput $ServerLog 
+    -RedirectStandardOutput $ServerLog
 
 Log "FS25 lancé (PID=$($Process.Id))"
 
-# Monitor boucle simple
+# --- Ouvrir WebAdmin après 10 secondes ---
+Start-Sleep -Seconds 10
+if (Get-Command msedge.exe -ErrorAction SilentlyContinue) {
+    Start-Process "msedge.exe" -ArgumentList "http://192.168.18.54:8080"
+    Log "WebAdmin ouvert dans Edge"
+} else {
+    Log "Edge non trouvé, WebAdmin non ouvert"
+}
+
+# --- Boucle monitoring ---
 while ($true){
     Start-Sleep -Seconds 60
-    if (-not (Get-Process -Id $Process.Id -ErrorAction SilentlyContinue)) { Log "FS25 arrêté"; exit 1 }
+    if (-not (Get-Process -Id $Process.Id -ErrorAction SilentlyContinue)) { 
+        Log "FS25 arrêté"
+        exit 1
+    }
 }
