@@ -3,24 +3,38 @@ param(
     [string]$InstanceName
 )
 
-# Paths
+$ErrorActionPreference = "Stop"
+
+# Base paths
 $ROOT = "C:\devops-game-servers"
 $InstanceName = $InstanceName.ToLower()
 $InstancePath = Join-Path $ROOT "fs25\instances\$InstanceName"
-$SavedDir = Join-Path $InstancePath "Saved"
 
-# Stop old processes
-Get-Process -Name dedicatedServer -ErrorAction SilentlyContinue | Stop-Process -Force
+# Créer dossiers de l'instance
+foreach ($sub in @("Saved","Mods","logs","Backups")) {
+    $subPath = Join-Path $InstancePath $sub
+    if (-not (Test-Path $subPath)) { New-Item -ItemType Directory -Force -Path $subPath | Out-Null }
+}
 
-# Clean DB lock files
-Remove-Item "$SavedDir\dedicated_server\*.db-journal" -ErrorAction SilentlyContinue
+# Donner toutes permissions à l'utilisateur courant
+icacls $InstancePath /grant "$($env:USERNAME):F" /T | Out-Null
 
-# Path to executable
+# Chemin vers l'exe FS25
 $ExePath = "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25\dedicatedServer.exe"
-if (-not (Test-Path $ExePath)) { Write-Error "DedicatedServer.exe introuvable"; exit 1 }
+$ExeDir  = Split-Path $ExePath
 
-# Arguments
+# Chemins internes
+$SavedDir = Join-Path $InstancePath "Saved"
+$LogDir   = Join-Path $InstancePath "logs"
+$ServerLog = Join-Path $LogDir "fs25_server.log"
+
+# Nettoyer la DB lock si existante
+$DBFiles = Join-Path $SavedDir "dedicated_server\*.db-journal"
+if (Test-Path $DBFiles) { Remove-Item $DBFiles -Force }
+
+# Arguments serveur
 $Args = "-saveDir `"$SavedDir`" -log"
 
-# Start the server in a new window
-Start-Process -FilePath $ExePath -ArgumentList $Args -WorkingDirectory "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25\x64" -WindowStyle Normal
+Write-Host "Lancement de FS25 ($InstanceName)..."
+Start-Process -FilePath $ExePath -ArgumentList $Args -WorkingDirectory $ExeDir -WindowStyle Normal
+Write-Host "Serveur lancé. Vérifie le log dans : $ServerLog"
