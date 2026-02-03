@@ -37,7 +37,7 @@ if (-not (Test-Path $ConfigXmlPath)) {
         </initial_admin>
         <tls port="8443" active="false" />
     </webserver>
-    <game description="Farming Simulator 25" name="FarmingSimulator2025" exe="FS25DedicatedServer.exe" />
+    <game description="Farming Simulator 25" name="FarmingSimulator2025" exe="dedicatedServer.exe" />
 </server>
 "@
     $xmlContent | Out-File -Encoding UTF8 -FilePath $ConfigXmlPath
