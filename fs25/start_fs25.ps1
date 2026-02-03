@@ -18,6 +18,31 @@ foreach ($sub in @("Saved","Mods","logs","Backups")) {
     }
 }
 
+# --- Dossier dédié FS25 ---
+$DedicatedDir = Join-Path $InstancePath "Saved\dedicated_server"
+if (-not (Test-Path $DedicatedDir)) {
+    New-Item -ItemType Directory -Force -Path $DedicatedDir | Out-Null
+}
+
+# --- Config XML par défaut ---
+$ConfigXmlPath = Join-Path $DedicatedDir "dedicatedServerConfig.xml"
+if (-not (Test-Path $ConfigXmlPath)) {
+    $xmlContent = @"
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<server>
+    <webserver port="8080">
+        <initial_admin>
+            <username>admin</username>
+            <passphrase>TQZPSEC2</passphrase>
+        </initial_admin>
+        <tls port="8443" active="false" />
+    </webserver>
+    <game description="Farming Simulator 25" name="FarmingSimulator2025" exe="FS25DedicatedServer.exe" />
+</server>
+"@
+    $xmlContent | Out-File -Encoding UTF8 -FilePath $ConfigXmlPath
+}
+
 # --- Chemins FS25 ---
 $FS25Install = "C:\Program Files (x86)\Steam\steamapps\common\Farming Simulator 25"
 $ExePath = Join-Path $FS25Install "FS25DedicatedServer.exe"
