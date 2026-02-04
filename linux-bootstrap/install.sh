@@ -1,102 +1,123 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-#######################################
-# Globals
-#######################################
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$ROOT_DIR/scripts"
 CONFIG_DIR="$ROOT_DIR/config"
-LOG_FILE="/var/log/linux-boostrap.log" 
+LOG_FILE="/var/log/linux-bootstrap.log"
 
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "========================================"
-echo "🚀 Linux Server Bootstrap Starting"
+echo "🚀 Linux Enterprise Bootstrap Starting"
 echo "🕒 $(date)"
 echo "========================================"
 
 #######################################
-# 0. Root check
+# 0️⃣ Root check
 #######################################
 "$SCRIPT_DIR/00-check-root.sh"
 
 #######################################
-# 1. Load config
+# 1️⃣ Load config
 #######################################
-if [[ ! -f "$CONFIG_DIR/server.env" ]]; then
-    echo "❌ Missing config/server.env"
+for cfg in server.env ssh.env firewall.env; do
+  if [[ ! -f "$CONFIG_DIR/$cfg" ]]; then
+    echo "❌ Missing config/$cfg"
     exit 1
-fi
+  fi
+  source "$CONFIG_DIR/$cfg"
+done
 
-source "$CONFIG_DIR/server.env"
-source "$CONFIG_DIR/ssh.env"
-source "$CONFIG_DIR/firewall.env"
-
-echo "✅ Config loaded"
+echo "✅ Configuration loaded"
 
 #######################################
-# 2. Mandatory base steps (order matters)
+# 2️⃣ Base system setup
 #######################################
 BASE_SCRIPTS=(
-    "01-system-update.sh"
-    "02-users.sh"
-    "03-timezone-ntp.sh"
-    "04-firewall.sh"
-    "05-fail2ban.sh"
+  "01-system-update.sh"
+  "02-users.sh"
+  "06-timezone-ntp.sh"
+  "03-ssh-hardening.sh"
+  "04-firewall.sh"
+  "05-fail2ban.sh"
 )
 
 echo "🔧 Running base system setup..."
-for scripts in "${BASE_SCRIPTS[@]}"; docker
-    echo "➡ Running $script"
-    "$SCRIPT_DIR/$script"
+for script in "${BASE_SCRIPTS[@]}"; do
+  echo "➡ $script"
+  "$SCRIPT_DIR/$script"
 done
 
 #######################################
-# 3. Optional modules (config-driven)
+# 3️⃣ Enterprise hardening layer
 #######################################
-OPTIONAL_SCRIPTS=()
+if [[ "${ENABLE_ENTERPRISE_HARDENING:-false}" == "true" ]]; then
+  echo "🏢 Applying enterprise hardening..."
 
-[[ "${ENABLE_CUSTOM_PACKAGES:-false}" == "true" ]] && OPTIONAL_SCRIPTS+=("09-custom-packages.sh")
-[[ "${ENABLE_DOCKER:-false}" == "true" ]] && OPTIONAL_SCRIPTS+=("07-docker.sh")
-[[ "${ENABLE_MONITORING:-false}" == "true" ]] && OPTIONAL_SCRIPTS+=("08-monitoring.sh")
+  [[ "${ENABLE_KERNEL_HARDENING:-true}" == "true" ]] \
+    && "$SCRIPT_DIR/10-kernel-hardening.sh"
 
-if [[ ${#OPTIONAL_SCRIPTS[@]} -gt 0 ]]; then
-    echo "🧩 Running optional modules..."
-    for script in "${OPTIONAL_SCRIPTS[@]}"; do 
-        echo "➡ Running $script"
-        "$SCRIPT_DIR/$script"
-    done 
-else 
-    echo "ℹ️ No optional modules enabled"
+  [[ "${ENABLE_AUTO_UPDATES:-true}" == "true" ]] \
+    && "$SCRIPT_DIR/11-unattended-upgrades.sh"
+
+  [[ "${ENABLE_AUDITD:-true}" == "true" ]] \
+    && "$SCRIPT_DIR/12-auditd.sh"
+
+  [[ "${ENABLE_APPARMOR:-true}" == "true" ]] \
+    && "$SCRIPT_DIR/13-apparmor.sh"
+
+  [[ "${ENABLE_LOGROTATE:-true}" == "true" ]] \
+    && "$SCRIPT_DIR/14-logrotate.sh"
+else
+  echo "ℹ️ Enterprise hardening disabled"
 fi
 
 #######################################
-# 4. Final checks
+# 4️⃣ Optional services
 #######################################
-echo "🔍 Final validation..."
+OPTIONAL_SCRIPTS=()
 
-echo "➡ Firewall status:"
+[[ "${ENABLE_CUSTOM_PACKAGES:-false}" == "true" ]] \
+  && OPTIONAL_SCRIPTS+=("09-custom-packages.sh")
+
+[[ "${ENABLE_DOCKER:-false}" == "true" ]] \
+  && OPTIONAL_SCRIPTS+=("07-docker.sh")
+
+[[ "${ENABLE_MONITORING:-false}" == "true" ]] \
+  && OPTIONAL_SCRIPTS+=("08-monitoring.sh")
+
+if [[ ${#OPTIONAL_SCRIPTS[@]} -gt 0 ]]; then
+  echo "🧩 Installing optional services..."
+  for script in "${OPTIONAL_SCRIPTS[@]}"; do
+    echo "➡ $script"
+    "$SCRIPT_DIR/$script"
+  done
+else
+  echo "ℹ️ No optional services enabled"
+fi
+
+#######################################
+# 5️⃣ Final validation
+#######################################
+echo "🔍 Final system status:"
 ufw status verbose || true
-
-echo "➡ Fail2Ban status:"
 systemctl is-active fail2ban || true
-
-echo "➡ SSH status:"
-systemctl is-active ssh || true
-
+systemctl is-active auditd || true
+systemctl is-active apparmor || true
 
 #######################################
-# 5️. Completion
+# 6️⃣ Completion
 #######################################
 echo "========================================"
-echo "✅ Linux Server Bootstrap COMPLETE"
+echo "✅ Enterprise Bootstrap COMPLETE"
 echo "🧾 Log file: $LOG_FILE"
 echo "👤 Admin user: $NEW_USER"
 echo "🔐 SSH port: $SSH_PORT"
+echo "🏷 Role: ${SERVER_ROLE:-unset}"
 echo "========================================"
 
-echo "⚠️ IMPORTANT:"
+echo "⚠️ NEXT STEPS:"
 echo "• Open a NEW SSH session before closing this one"
 echo "• Log out/in if Docker was installed"
-echo "• Reboot recommended if kernel was upgraded"
+echo "• Reboot recommended (kernel / sysctl / auditd)"
