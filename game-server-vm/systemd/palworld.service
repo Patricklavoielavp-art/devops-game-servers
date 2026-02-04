@@ -1,0 +1,25 @@
+[Unit]
+Description=Palworld Dedicated Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/game-servers/palworld
+ExecStart=/opt/game-servers/palworld/PalServer.sh
+Restart=on-failure
+
+# ---- Performance tuning ----
+EnvironentFile=/etc/game-cpu.env
+CPUAffinity=${PAL_CPU_AFFINITY}
+Nice=-5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=0
+
+# ---- Security ----
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

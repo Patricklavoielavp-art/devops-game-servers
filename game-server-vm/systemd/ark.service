@@ -1,0 +1,27 @@
+[Unit]
+Description=ARK Dedicated Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/devops-game-servers/game-servers/ark
+ExecStart=/opt/devops-game-servers/game-servers/ark/ShooterGame/Binaries/Linux/ArkAscendedServer \
+    TheIsland?listen?Port=7777?QueryPort=27015
+Restart=on-failure
+LimitNOFILE=100000
+
+# ---- Performance Tuning ---
+EnvironentFile=/etc/game-cpu.env
+CPUAffinity=${ARK_CPU_AFFINITY}
+Nice=-5
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
+
+# ---- Security ----
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
