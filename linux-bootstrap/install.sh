@@ -69,6 +69,15 @@ if [[ "${ENABLE_ENTERPRISE_HARDENING:-false}" == "true" ]]; then
 
   [[ "${ENABLE_LOGROTATE:-true}" == "true" ]] \
     && "$SCRIPT_DIR/14-logrotate.sh"
+
+  [[ "${ENABLE_FIPS:-false}" == "true" ]] \
+    && "$SCRIPT_DIR/15-fips.sh"
+
+  [[ "${ENABLE_VAULT_AGENT:-false}" == "true" ]] \
+    && "$SCRIPT_DIR/16-vault-agent.sh"
+
+  [[ "${ENABLE_OSQUERY:-false}" == "true" ]] \
+    && "$SCRIPT_DIR/17-osquery.sh"
 else
   echo "ℹ️ Enterprise hardening disabled"
 fi
