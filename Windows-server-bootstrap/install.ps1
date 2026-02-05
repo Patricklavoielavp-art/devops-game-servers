@@ -1,12 +1,14 @@
 # Hybrid enterprise-style Windows Server 2022 bootstrap
+# Fully cleaned, safe for PowerShell execution
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# Paths
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $LogFile = "C:\Windows\Temp\windows-bootstrap.log"
 
-# Logging
+# Start logging
 Start-Transcript -Path $LogFile -Append
 
 Write-Host "========================================"
@@ -50,14 +52,22 @@ $optionalScripts = @(
     "24-crashdump.ps1"
 )
 
+# -----------------------------
 # Run base scripts
+# -----------------------------
 foreach ($script in $baseScripts) {
-    $path = Join-Path $ScriptDir "scripts\$script"
-    Write-Host "➡ Running $script"
-    & $path
+    $path = Join-Path $ScriptDir ("scripts\" + $script)
+    if (Test-Path $path) {
+        Write-Host "➡ Running $script"
+        & $path
+    } else {
+        Write-Host "⚠️ Base script not found: $script"
+    }
 }
 
-# Run optional scripts if enabled in config
+# -----------------------------
+# Run optional scripts if enabled
+# -----------------------------
 foreach ($script in $optionalScripts) {
     $scriptName = $script.Split('.')[0]
     $enabledVarName = "ENABLE_$scriptName"
@@ -68,8 +78,12 @@ foreach ($script in $optionalScripts) {
 
     if ($enabledVar -eq $true) {
         $path = Join-Path $ScriptDir ("scripts\" + $script)
-        Write-Host "➡ Running optional script $script"
-        & $path
+        if (Test-Path $path) {
+            Write-Host "➡ Running optional script $script"
+            & $path
+        } else {
+            Write-Host "⚠️ Optional script not found: $script"
+        }
     } else {
         Write-Host "ℹ️ Optional script $script skipped"
     }
