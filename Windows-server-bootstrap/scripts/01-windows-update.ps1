@@ -1,3 +1,5 @@
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 Write-Host "Installing Windows Updates..."
 
 Install-PackageProvider -Name NuGet -Force 
