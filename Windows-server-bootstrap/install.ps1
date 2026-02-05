@@ -59,8 +59,15 @@ foreach ($script in $baseScripts) {
 
 # Run optional scripts if enabled in config
 foreach ($script in $optionalScripts) {
-    $enabledVar = "ENABLE_$($script.Split('.')[0])"
-    if ($PSBoundParameters.ContainsKey($enabledVar) -or ($true -eq (Get-Variable -Name $enabledVar -ErrorAction SilentlyContinue).Value)) {
+    $scriptName = $script.Split('.')[0]
+    $enabledVarName = "ENABLE_$scriptName"
+
+    $enabledVar = $null
+    if (Get-Variable -Name $enabledVarName -Scope Script -ErrorAction SilentlyContinue) {
+        $enabledVar = (Get-Variable -Name $enabledVarName -Scope Script).Value
+    }
+
+    if ($enabledVar -eq $true) {
         $path = Join-Path $ScriptDir "scripts\$script"
         Write-Host "➡ Running optional script $script"
         & $path
