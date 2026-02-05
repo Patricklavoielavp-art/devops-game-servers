@@ -12,17 +12,17 @@ $LogFile = "C:\Windows\Temp\windows-bootstrap.log"
 Start-Transcript -Path $LogFile -Append
 
 Write-Host "========================================"
-Write-Host "🚀 Windows Server Bootstrap Starting"
-Write-Host "🕒 $(Get-Date)"
+Write-Host " Windows Server Bootstrap Starting"
+Write-Host " $(Get-Date)"
 Write-Host "========================================"
 
 # Load configuration
 $configFile = Join-Path $ScriptDir "config\server.psd1"
 if (Test-Path $configFile) {
     . $configFile
-    Write-Host "✅ Configuration loaded from server.psd1"
+    Write-Host " Configuration loaded from server.psd1"
 } else {
-    Write-Host "⚠️ Configuration file not found: $configFile"
+    Write-Host " Configuration file not found: $configFile"
 }
 
 # Base system scripts
@@ -61,7 +61,7 @@ foreach ($script in $baseScripts) {
         Write-Host "➡ Running $script"
         & $path
     } else {
-        Write-Host "⚠️ Base script not found: $script"
+        Write-Host " Base script not found: $script"
     }
 }
 
@@ -90,8 +90,8 @@ foreach ($script in $optionalScripts) {
 }
 
 Write-Host "========================================"
-Write-Host "✅ Bootstrap complete"
-Write-Host "🧾 Log file: $LogFile"
+Write-Host " Bootstrap complete"
+Write-Host " Log file: $LogFile"
 Write-Host "========================================"
 
 Stop-Transcript
