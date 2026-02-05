@@ -62,13 +62,12 @@ foreach ($script in $optionalScripts) {
     $scriptName = $script.Split('.')[0]
     $enabledVarName = "ENABLE_$scriptName"
 
-    $enabledVar = $null
-    if (Get-Variable -Name $enabledVarName -Scope Script -ErrorAction SilentlyContinue) {
-        $enabledVar = (Get-Variable -Name $enabledVarName -Scope Script).Value
-    }
+    $enabledVar = $false
+    $var = Get-Variable -Name $enabledVarName -Scope Script -ErrorAction SilentlyContinue
+    if ($var) { $enabledVar = $var.Value }
 
     if ($enabledVar -eq $true) {
-        $path = Join-Path $ScriptDir "scripts\$script"
+        $path = Join-Path $ScriptDir ("scripts\" + $script)
         Write-Host "➡ Running optional script $script"
         & $path
     } else {
