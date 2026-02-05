@@ -83,7 +83,6 @@ $index = 0
 
 foreach ($update in $updates) {
     $index++
-
     $percent = [int](($index / $total) * 100)
 
     Write-Progress `
@@ -91,9 +90,11 @@ foreach ($update in $updates) {
         -Status "$index / $total installed" `
         -PercentComplete $percent
 
-    Install-WindowsUpdate -Updates $update -AcceptAll -IgnoreReboot
+    # PowerShell 7 way
+    $update | Install-WindowsUpdate -AcceptAll -IgnoreReboot -Verbose
 }
 
 Write-Progress -Activity "Installing Windows Updates" -Completed
 Write-Host "Windows Update completed." -ForegroundColor Green
+
 
