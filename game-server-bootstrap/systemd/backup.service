@@ -1,0 +1,6 @@
+[Unit]
+Description=Game Server Backup
+
+[Service]
+Type=oneshot
+ExecStart=/opt/game-servers/scripts/backup.sh

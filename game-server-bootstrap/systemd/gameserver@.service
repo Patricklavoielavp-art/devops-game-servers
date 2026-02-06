@@ -1,0 +1,14 @@
+[Unit]
+Description=Game Server %i
+After=network.target
+
+[Service]
+Type=simple
+User=steam
+WorkingDirectory=/opt/game-servers/%i
+ExecStart=/opt/game-servers/%i/start.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

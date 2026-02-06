@@ -1,0 +1,12 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - git
+  - curl
+  - wget
+  - tar
+  - ufw
+runcmd:
+  - git clone https://github.com/<your_user>/game-server-bootstrap.git /opt/game-servers
+  - bash /opt/game-servers/scripts/bootstrap.sh
