@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-server
+  namespace: game-servers
+  labels:
+    app: game-server
+spec:
+  replicas: 2 
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    selector:
+      metadata:
+        labels:
+          app: game-server
+        annotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "8080"
+          prometheus.io/path: "/metrics"
+      specs:
+        containers:
+          - name: game-server
+            image: ghcr.io/patricklavoielavp-art/devops-game-servers/game-server:latest
+            imagePullPolicy: IfNotPresent
+            ports:
+          - name: game
+            containerPort: 27015
+            protocol: UDP
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+            env:
+          - name: GAMESERVER_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: game-server-config
+                key: server_name
+          - name: GAMESERVER_PLAYERS
+            valueFrom:
+              configMapKeyRef:
+                name: game-server-config
+                key: max_players
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: game-server-secrets
+                key: db_password
+            resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+            livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+            volumeMounts:
+          - name: game-data
+            mountPath: /opt/gameserver
+          - name: game-logs
+            mountPath: /var/log/gamese
+        volumes:
+      - name: game-data
+        emptyDir: {}
+      - name: game-logs
+        emptyDir: {}

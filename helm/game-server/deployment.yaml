@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-game-server
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: game-server
+  template:
+    metadata:
+      labels:
+        app: game-server
+    spec:
+      containers:
+      - name: game-server
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: game
+          containerPort: 27015
+        - name: http
+          containerPort: 8080
+        resources: {{ toYaml .Values.resources | nindent 10 }}
+        env:
+        - name: GAMESERVER_NAME
+          value: {{ .Values.config.serverName | quote }}
+        - name: GAMESERVER_PLAYERS
+          value: {{ .Values.config.maxPlayers | quote }}

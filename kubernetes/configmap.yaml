@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: game-server-config
+  namespace: game-servers
+data:
+  server_name: "DevOps Game Server"
+  max_players: "32"
+  difficulty: "hard"
+  map_rotation: "map1,map2,map3"

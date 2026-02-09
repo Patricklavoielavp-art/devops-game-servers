@@ -1,0 +1,45 @@
+name: Deploy to Kubernetes
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'kubernetes/**'
+      - 'helm/**'
+      - '.github/workflows/deploy-k8s.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.13.0'
+
+      - name: Apply Kubernetes manifests
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          kubectl apply -f kubernetes/namespace.yaml
+          kubectl apply -f kubernetes/configmap.yaml
+          kubectl apply -f kubernetes/secrets.yaml
+          kubectl apply -f kubernetes/game-server-deployment.yaml
+          kubectl apply -f kubernetes/game-server-service.yaml
+          kubectl apply -f kubernetes/prometheus-deployment.yaml
+          kubectl apply -f kubernetes/grafana-deployment.yaml
+          kubectl apply -f kubernetes/vault-deployment.yaml
+
+      - name: Verify deployment
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          kubectl rollout status deployment/game-server -n game-servers
+          kubectl get all -n game-servers

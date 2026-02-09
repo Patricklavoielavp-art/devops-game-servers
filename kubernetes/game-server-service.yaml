@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: game-server
+  namespace: game-servers
+  labels:
+    app: game-server
+spec:
+  type: LoadBalancer
+  selector:
+    app: game-server
+  ports:
+  - name: game
+    port: 27015
+    targetPort: game
+    protocol: UDP
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
