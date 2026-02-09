@@ -50,10 +50,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push docker images with release tag
-        if: env.RELEASE_VERSION != ''
         run: |
           RELEASE_VERSION=$(cat package.json | grep '"version"' | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
           docker build -t ghcr.io/${{ github.repository }}/game-server:${RELEASE_VERSION} ./game-server-bootstrap
           docker push ghcr.io/${{ github.repository }}/game-server:${RELEASE_VERSION}
           docker build -t ghcr.io/${{ github.repository }}/linux-base:${RELEASE_VERSION} ./linux-bootstrap
           docker push ghcr.io/${{ github.repository }}/linux-base:${RELEASE_VERSION}
+
+          
