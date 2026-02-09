@@ -1,0 +1,27 @@
+name: Terraform ( TFC remote runs)
+
+on: 
+  pull_request:
+    paths:
+      - 'game-server-bootstrap/terraform/**'
+  push:
+    branches: [ main ]
+
+jobs:
+ plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.5.7'
+      - name: terraform login (TFC)
+        env:
+          TFE_TOKEN: ${{ secrets.TFC_TOKEN }}
+        run: terraform login --token $TFE_TOKEN
+      - name: Init and plan (TFC)
+        working-directory: game-server-bootstrap/terraform
+        run: |
+          terraform init
+          terraform plan -out=tfplan -input=false

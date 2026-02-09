@@ -1,0 +1,40 @@
+version: 2
+Updates:
+  #GitHub Actions
+  - package-ecosystem: "github-ations"
+    directory: "/" 
+    schedule:
+      - interval: "weekly"
+    open-pull-requests-limit: 5
+    lables:
+      - "dependencies"
+      - "github-actions"
+  
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/" 
+    schedule:
+      - interval: "weekly"
+    open-pull-requests-limit: 5
+    lables:
+      - "dependencies"
+      - "docker"
+    
+  - package-ecosystem: "docker"
+    directory: "/linux-bootstrap" 
+    schedule:
+      - interval: "weekly"
+    open-pull-requests-limit: 5
+    lables:
+      - "dependencies"
+      - "docker"
+  
+  # Terraform modules and providers
+  - package-ecosystem: "terraform"
+    directory: "/game-server-bootstrap/terraform" 
+    schedule:
+      - interval: "weekly"
+    open-pull-requests-limit: 5
+    lables:
+      - "dependencies"
+      - "terraform"

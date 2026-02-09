@@ -1,0 +1,64 @@
+version: '3.9'
+
+services:
+  game-server:
+    build:
+      context: ./game-server-bootstrap
+      dockerfile: Dockerfile
+    container_name: devops-game-server
+    hostname: game-server
+    restart: unless-stopped
+    ports:
+      - "27015:27015/udp"
+      - "27015:27015/tcp"
+      - "8080:8080/tcp"
+    volumes:
+      - game-data:/opt/gameserver
+      - game-logs:/var/log/gameserver
+    environment:
+      GAMESERVER_NAME: "DevOps Game Server"
+      GAMESERVER_PLAYERS: "32"
+    networks:
+      - devops-net
+    depends_on:
+      - monitoring
+
+  monitoring:
+    image: prom/prometheus:latest
+    container_name: devops-monitoring
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - devops-net
+
+  backup:
+    image: ubuntu:22.04
+    container_name: devops-backup
+    restart: unless-stopped
+    volumes:
+      - game-data:/data:ro
+      - backup-data:/backup
+    command: >
+      bash -c "
+        while true; do
+          tar -czf /backup/gameserver-$(date +%Y%m%d-%H%M%S).tar.gz /data
+          find /backup -name '*.tar.gz' -mtime +7 -delete
+          sleep 86400
+        done
+      "
+    networks:
+      - devops-net
+
+volumes:
+  game-data:
+  game-logs:
+  prometheus-data:
+  backup-data:
+
+networks:
+  devops-net:
+    driver: bridge

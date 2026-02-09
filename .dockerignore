@@ -1,0 +1,10 @@
+.git
+.gitignore
+.github
+.editorconfig
+.pre-commit-config.yaml
+README.md
+*.tar.gz
+.DS_Store
+node_modules
+*.log

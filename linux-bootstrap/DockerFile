@@ -1,0 +1,32 @@
+FROM ubuntu:22.04
+
+LABEL maintainer="DevOps Team"
+LABEL description="Hardened Linux Base Image"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY scripts /tmp/bootstrap/scripts
+COPY config /tmp/bootstrap/config
+COPY templates /tmp/bootstrap/templates
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    curl \
+    wget \
+    sudo \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN bash /tmp/bootstrap/scripts/01-system-update.sh && \
+    bash /tmp/bootstrap/scripts/02-users.sh && \
+    bash /tmp/bootstrap/scripts/04-firewall.sh || true && \
+    bash /tmp/bootstrap/scripts/06-timezone-ntp.sh && \
+    bash /tmp/bootstrap/scripts/10-kernel-hardening.sh && \
+    rm -rf /tmp/bootstrap
+
+RUN apt-get clean && apt-get autoclean && apt-get autoremove -y
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD test -f /var/run/health.check || exit 1
+
+ENTRYPOINT ["/bin/bash"]

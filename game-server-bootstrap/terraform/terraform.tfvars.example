@@ -1,0 +1,4 @@
+vm_name = "game-server"
+cpus    = 2
+memory  = 2048
+disk_size = 20000

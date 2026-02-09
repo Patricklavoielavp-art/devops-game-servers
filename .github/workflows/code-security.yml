@@ -1,0 +1,54 @@
+name: Code Security Analysis
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  shellcheck-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run ShellCheck on shell scripts
+        run: |
+          apt-get update && apt-get install -y shellcheck
+          find . -name '*.sh' -not -path './.github/*' -print0 | xargs -0 shellcheck --exclusive-dir=.git
+
+  tfsec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tfsec for Terraform security checks
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: 'game-server-bootstrap/terraform'
+          format: 'sarif'
+          output: 'tfsec.sarif'
+
+      - name: Upload tfsec results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'tfsec.sarif'
+          category: 'tfsec'
+
+  ps-security:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer on PowerShell scripts
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Recurse -Filter *.ps1
+          foreach ($f in $files) {
+            Invoke-ScriptAnalyzer -Path $f.FullName -Recurse -Severity Error,Warning
+          }

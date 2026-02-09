@@ -1,0 +1,44 @@
+name: Terraform Plan
+
+on: 
+  pull_request:
+    paths:
+      - 'game-server-bootstrap/terraform/**'
+  push:
+    branches: [ main ]
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.5.7'
+
+      - name: Terraform fmt (check)
+        working-directory: game-server-bootstrap/terraform
+        run: terraform fmt -check -recursive
+
+      - name: Init (no-backend)
+        working-directory: game-server-bootstrap/terraform
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: game-server-bootstrap/terraform
+        run: terraform validate
+
+      - name: Terraform plan (create binary plan file)
+        working-directory: game-server-bootstrap/terraform
+        run: terraform plan -out=tfplan.binary
+        
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: game-server-bootstrap/terraform/plan.tfplan
+  

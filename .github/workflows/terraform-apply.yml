@@ -1,0 +1,22 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  apply:
+    runs-on: [self-hosted, virtualbox]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.5.7'
+      - name: Init
+        working-directory: game-server-bootstrap/terraform
+        run: terraform init
+      - name: Apply plan
+        working-directory: game-server-bootstrap/terraform
+        run: terraform apply -auto-approve

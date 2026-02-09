@@ -1,0 +1,66 @@
+name: Security Scan
+
+
+on:
+  push:
+    branches: [ main,master  ]
+  pull_request:
+    branches: [ main,master  ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build game-server image for scanning 
+        run: docker build -t game-server:${{ github.sha }} ./game-server-bootstrap
+
+      - name: Run Trivy vulneraility canner (game-server)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: game-server:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL'
+
+      - name: Upload game-server Trivy results to GitHub ecurity tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()  # Ensure this runs even if the Trivy scan fails
+        with:
+          sarif_file: 'game-server-trivy.sarif'
+          category: 'trivy-game-server'
+
+      - name: Build linux-base image for scanning
+        run: docker build -t linux-base:${{ github.sha }} ./linux-bootstrap     
+
+      - name: Run Trivy vulnerability scanner (linux-base)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: linux-base:${{ github.sha }}
+          format: 'sarif'
+          output: 'linux-base-trivy.sarif'
+
+      - name: Upload linux-base Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'linux-base-trivy.sarif'
+          category: 'trivy-linux-base'
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug

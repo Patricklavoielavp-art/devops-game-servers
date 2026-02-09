@@ -1,0 +1,32 @@
+{
+    "name":"devops-game-servers",
+    "version":"0.0.0",
+    "description":"DevOps automation foe game servers",
+    "private": true,
+    "scripts":{
+        "release":"semantic-release"
+    },
+    "devDependencies":{
+        "semantic-release":"^21.0.0",
+        "@semantic-release/commit-analyzer":"^11.0.0",
+        "@semantic-release/release-notes-generator":"^12.0.0",
+        "@semantic-release/changelog":"^6.0.0",
+        "@semantic-release/git":"^10.0.0",
+        "@semantic-release/github":"^9.0.0",
+        "conventional-commit-parser":"^5.0.0",
+        "conventional-changelog-conventionalcommits":"^7.0.0"
+    },
+    "repository":{
+        "type":"git",
+        "url":"https://github.com/Patricklavoielavp-art/DEVOPS-GAME-SERVERS.git"
+    },
+    "keywords":[
+        "devops",
+        "game-server",
+        "terraform",
+        "docker",
+        "ci-cd"
+    ],
+    "author":"Patrick Lavoie",
+    "license":"MIT"
+}
