@@ -3,7 +3,11 @@ from collections import deque
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from threading import Thread
+from ui.programming_tab import ProgrammingTab
+from ui.tuning_tab import TuningTab
 import time
+from PIL import Image, ImageTk # Gestion d'image 
+import os
 
 # --- Import des traductions depuis ui.i18n ---
 from ui.i18n import tr, set_lang
@@ -103,7 +107,7 @@ ctk.set_default_color_theme("blue")
 class ECUProgrammerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("ECU Programmer")
+        self.title("Saguenay Tuning's ECU Programmer")
         self.geometry("1200x700")
 
         self.grid_columnconfigure(1, weight=1)
@@ -113,9 +117,29 @@ class ECUProgrammerApp(ctk.CTk):
         self.sidebar = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="ns")
 
+        # Créer un frame horizontal pour titre + logo
+        title_frame = ctk.CTkFrame(self.sidebar)
+        title_frame.pack(pady=(20,10))
+
+
         # Titre
-        self.title_label = ctk.CTkLabel(self.sidebar, text=tr("ecu_tool"), font=("Arial", 20, "bold"))
-        self.title_label.pack(pady=(20, 10))
+        self.title_label = ctk.CTkLabel(title_frame, text=tr("ecu_tool"), font=("Arial", 20, "bold"))
+        self.title_label.pack(side="left")
+
+        # -- changer l'image du logo ----
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "Saguenay_custom_tuning.png")
+        logo_img = Image.open(logo_path)
+        logo_img = logo_img.resize((32,32), Image.Resampling.LANCZOS)  # taille icône
+        self.icon_tk = ImageTk.PhotoImage(logo_img)
+        self.iconphoto(False, self.icon_tk)  # <-- c'est ça qui change l'icône fenêtre
+        
+        # barre de tâche windows 
+        ico_path = os.path.join(os.path.dirname(__file__), "assets", "Saguenay_custom_tuning.ico")
+        self.iconbitmap(ico_path)  # <-- c'est ça qui change l'icône barre de tâche
+        
+        #Logo 
+        self.title_logo = ctk.CTkLabel(title_frame, image=self.icon_tk, text="")
+        self.title_logo.pack(side="left", padx=(10,0))
 
         # ECU horizontal frame
         ecu_status_frame = ctk.CTkFrame(self.sidebar)
@@ -142,6 +166,7 @@ class ECUProgrammerApp(ctk.CTk):
         self.btn_flash.pack(pady=5, padx=10, fill="x")
         self.btn_logger = ctk.CTkButton(self.sidebar, text=tr("logger"), command=self.show_logger)
         self.btn_logger.pack(pady=5, padx=10, fill="x")
+
 
         # Language selector
         lang_label = ctk.CTkLabel(self.sidebar, text=tr("language"))
@@ -196,9 +221,9 @@ class ECUProgrammerApp(ctk.CTk):
 
     def show_flash(self):
         self.clear_content()
-        label = ctk.CTkLabel(self.content, text=tr("flash"), font=("Arial",24))
-        label.pack(pady=20)
-        self.log("Flash tool opened")
+        prog_tab = ProgrammingTab(self.content, self.ecu, log_callback=self.log)
+        prog_tab.pack(fill="both", expand=True)
+        self.log("ECU Programming tab loaded")
 
     def show_logger(self):
         self.clear_content()
@@ -238,6 +263,12 @@ class ECUProgrammerApp(ctk.CTk):
     def start_ecu_status_loop(self):
         self.update_ecu_status_color()
         self.after(500, self.start_ecu_status_loop)
+
+    def show_tuning(self):
+        self.clear_content()
+        tuning_tab = TuningTab(self.content, self.ecu, log_callback=self.log)
+        tuning_tab.pack(fill="both", expand=True)
+        self.log("Tuning tools tab loaded")
 
 # --- Lancer l'app ---
 if __name__ == "__main__":
